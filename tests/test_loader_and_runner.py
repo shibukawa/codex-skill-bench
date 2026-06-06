@@ -6,7 +6,7 @@ from pathlib import Path
 from codex_skill_bench.cli import main
 from codex_skill_bench.runner import PROJECT_SKILL_ROOT, BenchRunner, read_usage, skill_name, skill_was_activated
 from codex_skill_bench.models import RunSpec
-from codex_skill_bench.suite_loader import load_suite
+from codex_skill_bench.suite_loader import load_suite, resolve_prompt
 
 
 def test_load_basic_suite() -> None:
@@ -17,7 +17,19 @@ def test_load_basic_suite() -> None:
     assert [variant.name for variant in suite.variants] == ["with-skill", "no-skill"]
     assert suite.variants[0].skill_name == "license-header"
     assert fixtures[0].fixture_id == "simple-python"
-    assert fixtures[0].cases[0].case_id == "add-license"
+    assert fixtures[0].cases[0].case_id == "add-license-header"
+    assert fixtures[0].cases[0].title == "Add license header"
+    assert "promptVariants" in fixtures[0].cases[0].raw
+
+
+def test_resolve_prompt_variants() -> None:
+    suite, fixtures = load_suite(Path("examples/basic-suite/suite.yaml"))
+    case = fixtures[0].cases[0]
+    skill_prompt = resolve_prompt(case, suite.variants[0])
+    control_prompt = resolve_prompt(case, suite.variants[1])
+    assert skill_prompt.startswith("Use the $license-header skill.")
+    assert "$skill" not in skill_prompt
+    assert control_prompt.startswith("Add an MIT license header")
 
 
 def test_run_with_fake_sdk(tmp_path: Path, monkeypatch) -> None:

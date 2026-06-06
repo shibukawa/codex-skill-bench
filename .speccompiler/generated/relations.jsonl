@@ -102,14 +102,13 @@
 {"source_id": "test-case-model", "target_id": "assertion-engine", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/assertion-engine.md"}
 {"source_id": "test-case-model", "target_id": "comparison-matrix", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/comparison-matrix.md"}
 {"source_id": "test-definition-format", "target_id": "suite-config-model", "relation": "links_to", "section": "Inheritance Rules", "target_path": "specs/suite-config-model.md"}
-{"source_id": "test-definition-format", "target_id": "workspace-scenario-set", "relation": "links_to", "section": "Inheritance Rules", "target_path": "specs/workspace-scenario-set.md"}
 {"source_id": "test-definition-format", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/suite-config-model.md"}
 {"source_id": "test-definition-format", "target_id": "workspace-scenario-set", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/workspace-scenario-set.md"}
 {"source_id": "test-definition-format", "target_id": "test-case-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-case-model.md"}
 {"source_id": "test-definition-format", "target_id": "assertion-engine", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/assertion-engine.md"}
 {"source_id": "test-definition-format", "target_id": "event-log-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/event-log-model.md"}
 {"source_id": "test-definition-format", "target_id": "retry-and-stability-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/retry-and-stability-policy.md"}
-{"source_id": "workspace-scenario-set", "target_id": "test-case-model", "relation": "links_to", "section": "Scenario Files", "target_path": "specs/test-case-model.md"}
+{"source_id": "workspace-scenario-set", "target_id": "test-case-model", "relation": "links_to", "section": "Fixture File", "target_path": "specs/test-case-model.md"}
 {"source_id": "workspace-scenario-set", "target_id": "test-definition-format", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-definition-format.md"}
 {"source_id": "workspace-scenario-set", "target_id": "test-case-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-case-model.md"}
 {"source_id": "workspace-scenario-set", "target_id": "codex-runner", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-runner.md"}

@@ -22,13 +22,13 @@ A test case defines one Codex skill evaluation scenario: one or more prompt step
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `id` | string | yes | Stable identifier used in paths and report keys. |
 | `title` | string | yes | Human-readable case title. |
 | `description` | string | no | Purpose and coverage notes. |
 | `enabled` | boolean | no | Defaults to `true`. |
 | `tags` | array | no | Used for filtering and report grouping. |
 | `workspace` | object | no | Fixture source or inline files. Required only when the case is not inside a [Workspace Fixture](workspace-scenario-set.md). |
-| `prompt` | string | no | Natural-language instruction for a single-prompt case. |
+| `prompt` | string | no | Natural-language instruction shorthand. Mutually exclusive with `promptVariants`. |
+| `promptVariants` | object | no | Prompt map selected by variant name, `no-skill`, `specific-skill[<skill>]`, or `skill`. Mutually exclusive with `prompt`. |
 | `promptFile` | string | no | External prompt file relative to the case file for a single-prompt case. |
 | `steps` | array | no | Ordered prompt, expected, and unexpected items. Mutually exclusive with top-level `prompt` or `promptFile`. |
 | `skills` | array | no | Skill names or paths expected to be available. |
@@ -53,11 +53,20 @@ A test case defines one Codex skill evaluation scenario: one or more prompt step
 
 All fixture paths are resolved relative to the suite file unless explicitly absolute. Inline file paths must be relative and must not escape the run workspace.
 
-When a case lives under `fixtures/<fixture-id>/cases/`, the default workspace is `fixtures/<fixture-id>/workspace/`. The runner copies that workspace for every case execution.
+When a case lives in `fixtures/<fixture-id>/fixture.yaml` under `cases`, the default workspace is `fixtures/<fixture-id>/workspace/`. The runner copies that workspace for every case execution.
 
 ## Prompt Rules
 
-- `prompt` is passed to the Codex SDK turn as the user input for the benchmark run.
+- Case ID is derived from `title` by lowercasing and replacing non-path-safe characters with `-`.
+- `prompt` is shorthand for the same prompt under `skill` and `no-skill`.
+- `prompt` and `promptVariants` are mutually exclusive.
+- Prompt variant keys may be arbitrary variant names.
+- `no-skill` is the special fallback key for control variants.
+- `skill` is the special fallback key for any skill variant.
+- `specific-skill[<skill-name>]` targets only variants using the named skill, such as `specific-skill[license-header]`.
+- Skill prompts replace `$skill` with the resolved skill reference, such as `$license-header`.
+- If a skill prompt does not mention the resolved skill reference, the runner prefixes an instruction to use that selected skill.
+- The resolved prompt is passed to the Codex SDK turn as the user input for the benchmark run.
 - The prompt may reference files created by the fixture.
 - The prompt may instruct Codex to use a skill by name or by path.
 - Prompt templates may interpolate run variables such as case ID, model, variant name, and workspace path.
@@ -65,7 +74,6 @@ When a case lives under `fixtures/<fixture-id>/cases/`, the default workspace is
 ## Example
 
 ```yaml
-id: add-cli-flag
 title: Add CLI flag behavior
 prompt: |
   Add a --name flag to the sample Go CLI and update tests.
@@ -79,7 +87,7 @@ expected:
 
 ## Rules / Constraints
 
-- Test case IDs must be unique within a suite.
+- Generated test case IDs from titles must be unique within a fixture.
 - A test case must be executable without relying on previous test cases.
 - Test cases in the same [Workspace Fixture](workspace-scenario-set.md) must receive independent copies of the shared workspace.
 - The canonical input format is YAML.

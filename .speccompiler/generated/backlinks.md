@@ -168,5 +168,4 @@
 - links_to from Test Case Model
 - links_to from Test Case Model
 - relates_to from Test Case Model
-- links_to from Test Definition Format
 - relates_to from Test Definition Format

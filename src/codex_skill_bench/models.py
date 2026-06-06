@@ -44,8 +44,7 @@ class CaseConfig:
     path: Path
     prompt: str | None = None
     prompt_file: Path | None = None
-    prompt_by_variant: dict[str, str] = field(default_factory=dict)
-    prompt_by_variant_kind: dict[str, str] = field(default_factory=dict)
+    prompt_variants: dict[str, str] = field(default_factory=dict)
     timeout_seconds: int | None = None
     raw: dict[str, Any] = field(default_factory=dict)
 
@@ -55,7 +54,6 @@ class SuiteConfig:
     path: Path
     name: str
     fixtures_root: Path
-    case_glob: str
     skills: list[SkillConfig]
     models: list[ModelConfig]
     variants: list[VariantConfig]

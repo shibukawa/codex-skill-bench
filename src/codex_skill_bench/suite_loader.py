@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from fnmatch import fnmatch
+import re
 from typing import Any
 
 import yaml
@@ -16,7 +17,6 @@ def load_suite(path: Path) -> tuple[SuiteConfig, list[FixtureConfig]]:
 
     fixtures_cfg = data.get("fixtures", {}) or {}
     fixtures_root = _resolve(base, fixtures_cfg.get("root", "fixtures"))
-    case_glob = fixtures_cfg.get("caseGlob", "cases/*.yaml")
     skills = [_parse_skill(base, item) for item in data.get("skills", [])]
     skill_by_name = {skill.name: skill for skill in skills}
 
@@ -33,7 +33,6 @@ def load_suite(path: Path) -> tuple[SuiteConfig, list[FixtureConfig]]:
         path=path,
         name=str(data.get("name", path.stem)),
         fixtures_root=fixtures_root,
-        case_glob=case_glob,
         skills=skills,
         models=models,
         variants=variants,
@@ -58,9 +57,8 @@ def discover_fixtures(suite: SuiteConfig, fixtures_cfg: dict[str, Any]) -> list[
 
         fixture_yaml = fixture_dir / "fixture.yaml"
         fixture_data = _load_yaml(fixture_yaml) if fixture_yaml.exists() else {}
-        fixture_id = str(fixture_data.get("id", fixture_id))
-        workspace = _resolve(fixture_dir, fixture_data.get("workspace", {}).get("path", "workspace"))
-        cases = [_parse_case(case_path) for case_path in sorted(fixture_dir.glob(suite.case_glob))]
+        workspace = fixture_dir / "workspace"
+        cases = [_parse_case_data(fixture_yaml, item, fixture_dir) for item in fixture_data.get("cases", [])]
         fixtures.append(
             FixtureConfig(
                 fixture_id=fixture_id,
@@ -124,32 +122,57 @@ def _parse_variant(
     )
 
 
-def _parse_case(path: Path) -> CaseConfig:
-    data = _load_yaml(path)
+def _parse_case_data(path: Path, data: dict[str, Any], base: Path) -> CaseConfig:
+    if "prompt" in data and "promptVariants" in data:
+        raise ValueError(f"case {data.get('title', '<untitled>')} must not define both prompt and promptVariants")
     prompt_file = data.get("promptFile")
+    title = str(data["title"])
+    prompt = data.get("prompt")
+    prompt_variants = data.get("promptVariants", {}) or {}
+    if prompt is not None:
+        prompt_variants = {"skill": prompt, "no-skill": prompt}
     return CaseConfig(
-        case_id=str(data["id"]),
-        title=str(data.get("title", data["id"])),
+        case_id=str(data.get("id", case_id_from_title(title))),
+        title=title,
         path=path,
-        prompt=data.get("prompt"),
-        prompt_file=(path.parent / prompt_file).resolve() if prompt_file else None,
-        prompt_by_variant=data.get("promptByVariant", {}) or {},
-        prompt_by_variant_kind=data.get("promptByVariantKind", {}) or {},
+        prompt=prompt,
+        prompt_file=(base / prompt_file).resolve() if prompt_file else None,
+        prompt_variants=prompt_variants,
         timeout_seconds=_parse_duration_seconds(data.get("timeout")),
         raw=data,
     )
 
 
 def resolve_prompt(case: CaseConfig, variant: VariantConfig) -> str:
-    if variant.name in case.prompt_by_variant:
-        return case.prompt_by_variant[variant.name]
-    if variant.kind in case.prompt_by_variant_kind:
-        return case.prompt_by_variant_kind[variant.kind]
-    if case.prompt is not None:
-        return case.prompt
+    prompt = _select_prompt(case, variant)
+    if prompt is not None:
+        return _render_prompt(prompt, variant)
     if case.prompt_file is not None:
-        return case.prompt_file.read_text()
-    raise ValueError(f"case {case.case_id} must define prompt, promptFile, or variant prompt")
+        return _render_prompt(case.prompt_file.read_text(), variant)
+    raise ValueError(f"case {case.case_id} must define prompt, promptFile, or promptVariants")
+
+
+def _select_prompt(case: CaseConfig, variant: VariantConfig) -> str | None:
+    variants = case.prompt_variants
+    if variant.name in variants:
+        return variants[variant.name]
+    if variant.kind == "control":
+        return variants.get("no-skill")
+    if variant.kind == "skill":
+        if variant.skill_name and f"specific-skill[{variant.skill_name}]" in variants:
+            return variants[f"specific-skill[{variant.skill_name}]"]
+        return variants.get("skill")
+    return None
+
+
+def _render_prompt(prompt: str, variant: VariantConfig) -> str:
+    if variant.kind != "skill" or not variant.skill_name:
+        return prompt
+    skill_ref = f"${variant.skill_name}"
+    rendered = prompt.replace("$skill", skill_ref)
+    if skill_ref not in rendered:
+        rendered = f"Use the {skill_ref} skill.\n{rendered}"
+    return rendered
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -180,3 +203,8 @@ def _parse_duration_seconds(raw: Any) -> int | None:
     if text.endswith("m"):
         return int(text[:-1]) * 60
     return int(text)
+
+
+def case_id_from_title(title: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9._-]+", "-", title.strip().lower())
+    return normalized.strip("-")

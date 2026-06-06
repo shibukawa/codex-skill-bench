@@ -27,9 +27,6 @@ suite.yaml
 fixtures/
   go-sample-project/
     workspace/
-    cases/
-      add-cli-flag.yaml
-      analyze-package-structure.yaml
     fixture.yaml
 results/
 ```
@@ -60,7 +57,6 @@ results/
 | --- | --- | --- | --- |
 | `root` | string | `fixtures` | Directory containing workspace fixtures. |
 | `exclude` | array | none | Fixture ID glob patterns to exclude. |
-| `caseGlob` | string | `cases/*.yaml` | Case files under each fixture. |
 
 ## Skill Settings
 
@@ -295,8 +291,7 @@ report:
 
 - `suite.yaml` is the primary CLI input for `run`, `validate`, and `list`.
 - All relative paths in the suite config are resolved relative to the suite file.
-- Fixture-level defaults override suite defaults.
-- Case-level fields override fixture-level and suite-level defaults.
+- Case-level fields override suite-level defaults.
 - The runner must reject unknown required schema versions.
 - The runner must preserve enough resolved configuration in each run result to reproduce the invocation.
 - The default configuration must preserve the user's logged-in `CODEX_HOME` and materialize skill variants into the copied run workspace.

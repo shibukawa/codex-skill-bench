@@ -19,7 +19,7 @@ facts:
 
 ## Summary
 
-The canonical test definition format is a YAML suite rooted at `suite.yaml`, reusable workspace fixtures under `fixtures/<fixture-id>/`, and one or more case YAML files under each fixture's `cases/` directory. Each case is run against a fresh copy of its fixture workspace for each selected model, skill variant, and attempt.
+The canonical test definition format is a YAML suite rooted at `suite.yaml` and reusable workspace fixtures under `fixtures/<fixture-id>/`. Each fixture has a fixed `workspace/` directory and a `fixture.yaml` file containing a `cases` list. Each case is run against a fresh copy of its fixture workspace for each selected model, skill variant, and attempt.
 
 ## Canonical File Layout
 
@@ -31,9 +31,6 @@ fixtures/
     workspace/
       src/sample.py
       src/sample.go
-    cases/
-      add-mit-header.yaml
-      audit-missing-header.yaml
 results/
 ```
 
@@ -88,35 +85,48 @@ report:
 
 ## Fixture File
 
-`fixtures/<fixture-id>/fixture.yaml` describes the reusable initial workspace and fixture-level defaults. The file is optional. When omitted, fixture ID defaults to the directory name and workspace path defaults to `workspace/`.
+`fixtures/<fixture-id>/fixture.yaml` contains the fixture's case list. The fixture directory name is the fixture ID and human-readable title. The workspace path is fixed to `workspace/`.
 
 ```yaml
-id: license-header-basic
-title: License header sample project
-description: Python and Go files without license headers.
-workspace:
-  path: workspace
-defaults:
-  timeout: 10m
-  tags:
-    - license
+cases:
+  - title: Add MIT license headers to Python and Go files
+    description: Uses the license-header skill reference and scripts.
+    tags:
+      - mutation
+      - script
+    promptVariants:
+      skill: |
+        Use the $skill skill to add MIT license headers to src/sample.py and src/sample.go.
+        Follow the skill workflow: read only references/mit.txt, run the audit script first,
+        then run prepend_license.py. Use year 2026 and owner Example Corp.
+      no-skill: |
+        Add MIT license headers to src/sample.py and src/sample.go.
+        Use year 2026 and owner Example Corp.
+
+    expected:
+      - expected: access reference
+        skill: license-header
+        reference: mit.txt
 ```
 
-## Case File
+## Case Item
 
-Case YAML files live under `fixtures/<fixture-id>/cases/*.yaml`. A case defines an ordered interaction list for the copied fixture workspace. Each list item is either a prompt injection, an expected condition, or an unexpected condition. Expected and unexpected conditions are optional and only the conditions written in the case are evaluated.
+Case definitions live as items under `fixtures/<fixture-id>/fixture.yaml` field `cases`. A case defines an ordered interaction list for the copied fixture workspace. Each list item is either a prompt injection, an expected condition, or an unexpected condition. Expected and unexpected conditions are optional and only the conditions written in the case are evaluated.
 
 ```yaml
-id: add-mit-header
 title: Add MIT license headers to Python and Go files
 description: Uses the license-header skill reference and scripts.
 tags:
   - mutation
   - script
-prompt: |
-  Use the $license-header skill to add MIT license headers to src/sample.py and src/sample.go.
-  Follow the skill workflow: read only references/mit.txt, run the audit script first,
-  then run prepend_license.py. Use year 2026 and owner Example Corp.
+promptVariants:
+  skill: |
+    Use the $skill skill to add MIT license headers to src/sample.py and src/sample.go.
+    Follow the skill workflow: read only references/mit.txt, run the audit script first,
+    then run prepend_license.py. Use year 2026 and owner Example Corp.
+  no-skill: |
+    Add MIT license headers to src/sample.py and src/sample.go.
+    Use year 2026 and owner Example Corp.
 
 expected:
   - expected: access reference
@@ -206,17 +216,15 @@ steps:
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `id` | string | yes | Unique within the fixture. Filesystem-safe. |
 | `title` | string | yes | Human-readable title. |
 | `description` | string | no | Coverage intent and notes. |
 | `enabled` | boolean | no | Defaults to `true`. |
 | `tags` | array | no | Used for filtering and reporting. |
-| `prompt` | string | no | Inline Codex prompt for a single-prompt case. |
-| `promptFile` | string | no | Path relative to the case file for a single-prompt case. |
-| `promptByVariant` | object | no | Prompt overrides keyed by variant name. |
-| `promptByVariantKind` | object | no | Prompt overrides keyed by `skill` or `control`. |
+| `prompt` | string | no | Inline Codex prompt shorthand. Mutually exclusive with `promptVariants`. |
+| `promptFile` | string | no | Path relative to the fixture directory for a single-prompt case. |
+| `promptVariants` | object | no | Prompt overrides keyed by variant name, `no-skill`, `specific-skill[<skill>]`, or `skill`. Mutually exclusive with `prompt`. |
 | `steps` | array | no | Ordered prompt, expected, and unexpected items. Mutually exclusive with top-level `prompt` or `promptFile`. |
-| `skills` | array | no | Skill names expected for this case. Defaults from fixture or suite. |
+| `skills` | array | no | Skill names expected for this case. Defaults from suite. |
 | `models` | array | no | Model override list for this case. |
 | `variants` | array | no | Variant override list for this case, including optional no-skill control variants. |
 | `timeout` | duration | no | Run timeout. |
@@ -236,38 +244,27 @@ steps:
 Resolved case configuration is built in this order:
 
 1. Suite defaults from [Suite Config Model](suite-config-model.md).
-2. Model-level overrides from the selected model entry.
-3. Fixture defaults from [Workspace Fixture](workspace-scenario-set.md).
-4. Case fields from the case YAML.
-5. CLI filters and overrides.
+2. Case fields from the fixture's `cases` item.
+3. CLI filters and overrides.
 
 Maps are deep-merged. Scalars replace earlier values. Lists replace earlier values unless the field explicitly supports append semantics. `tags` append and de-duplicate. `expected`, `unexpected`, and `steps` never inherit by default; shared expectations must be referenced with `expectRefs` in a later schema version.
 
-## Variant-Specific Prompts
+## Prompt Variant Rules
 
-Skill-enabled and no-skill control runs evaluate the same assertions, but they may need different user prompts. Prompt resolution order is:
-
-1. `promptByVariant[<variant name>]`
-2. `promptByVariantKind[<variant_kind>]`
-3. `prompt` or `promptFile`
-
-For multi-step cases, each prompt step may define `promptByVariant` and `promptByVariantKind` with the same precedence. Expectations remain shared across skill and control variants unless a future schema introduces explicit expectation scoping.
-
-Example:
-
-```yaml
-promptByVariantKind:
-  skill: |
-    Use the $license-header skill to add MIT license headers.
-  control: |
-    Add MIT license headers. Do not use any skill.
-```
+- `title` is required. `id` is not part of the case schema; the runner derives a stable ID from title.
+- `prompt` and `promptVariants` are mutually exclusive.
+- A string `prompt` is shorthand for the same prompt under `skill` and `no-skill`.
+- `promptVariants` keys may be variant names for exact matching.
+- `no-skill` is the control fallback key.
+- `skill` is the generic skill fallback key.
+- `specific-skill[<skill-name>]` targets only variants using the named root skill.
+- Skill prompts replace `$skill` with the selected skill reference, for example `$license-header`.
+- If a skill prompt does not mention the selected skill reference, the runner adds an instruction to use that skill.
 
 ## Path Rules
 
 - `suite.yaml` relative paths resolve relative to the suite file.
-- `fixture.yaml` relative paths resolve relative to the fixture directory.
-- Case `promptFile` and standalone `workspace.fixturePath` resolve relative to the case file.
+- `fixture.yaml` case `promptFile` paths resolve relative to the fixture directory.
 - Assertion `path` values resolve relative to the copied run workspace.
 - Assertion paths must not be absolute and must not escape the run workspace.
 - Skill paths in root suite `skills` resolve relative to the suite file.
@@ -300,9 +297,8 @@ Each `steps` item must contain exactly one of `prompt`, `promptFile`, `expected`
 | --- | --- | --- | --- |
 | `id` | string | no | Optional stable item ID. Generated from order when omitted. |
 | `prompt` | string | no | Inline prompt injected into Codex. |
-| `promptFile` | string | no | External prompt file relative to the case file. |
-| `promptByVariant` | object | no | Prompt overrides keyed by variant name. |
-| `promptByVariantKind` | object | no | Prompt overrides keyed by `skill` or `control`. |
+| `promptFile` | string | no | External prompt file relative to the fixture directory. |
+| `promptVariants` | object | no | Prompt overrides keyed by variant name, `no-skill`, `specific-skill[<skill>]`, or `skill`. |
 | `expected` | string | no | Expected event alias or canonical event name. |
 | `unexpected` | string | no | Forbidden event alias or canonical event name. |
 | `timeout` | duration | no | Optional step timeout. |
@@ -499,4 +495,4 @@ Setup command output is recorded separately from Codex SDK events and must not s
 
 ## Native-Language Summary
 
-テスト定義は `suite.yaml`、`fixtures/<fixture>/fixture.yaml`、`fixtures/<fixture>/cases/*.yaml` の3層YAMLで表す。caseは `steps` に prompt、expected、unexpected を順番に並べられる。prompt間のexpected/unexpectedは順不同で評価し、書かれた期待だけを検証し、余分な観測イベントは許容する。
+テスト定義は `suite.yaml` と `fixtures/<fixture>/fixture.yaml` の2層YAMLで表す。fixtureディレクトリ名をid/titleとし、`workspace/` は固定、caseは `fixture.yaml` の `cases` 配列に書く。caseは `title` だけを必須とし、idはtitleから生成する。promptは `promptVariants` でvariant名、`no-skill`、`skill`、`specific-skill[<skill>]` を切り替えられる。caseは `steps` に prompt、expected、unexpected を順番に並べられる。prompt間のexpected/unexpectedは順不同で評価し、書かれた期待だけを検証し、余分な観測イベントは許容する。

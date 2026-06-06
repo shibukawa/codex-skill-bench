@@ -21,7 +21,7 @@ The Codex Runner materializes isolated run directories, prepares project-local s
 
 ## Responsibilities
 
-- Copy or generate the test workspace fixture, including fixture workspaces under `fixtures/<fixture-id>/workspace/`.
+- Copy or generate the test workspace fixture, including fixed fixture workspaces under `fixtures/<fixture-id>/workspace/`.
 - Install or overlay the selected skill implementation variant into the copied run workspace's project-local skill root, unless the selected variant is a no-skill control.
 - Build the Codex execution request with configured model, sandbox, approval, network, timeout, and output paths.
 - Load and merge `.env.skill` files according to [Security And Isolation Policy](security-and-isolation-policy.md).
@@ -52,7 +52,7 @@ The Codex Runner materializes isolated run directories, prepares project-local s
 ## Execution Rules
 
 - Each run must use a clean workspace directory.
-- When a scenario belongs to a [Workspace Fixture](workspace-scenario-set.md), each run must copy the fixture's `workspace/` directory into a fresh run workspace before Codex starts.
+- When a scenario belongs to a [Workspace Fixture](workspace-scenario-set.md), each run must copy the fixture's fixed `workspace/` directory into a fresh run workspace before Codex starts.
 - Each run should inherit the logged-in `CODEX_HOME` unless a suite explicitly requests an advanced isolated-auth mode.
 - Each skill-enabled run must place the selected root `skills` entry under the copied workspace, defaulting to `.agents/skills/<skill-name>/`.
 - Each no-skill control run must skip target skill materialization.

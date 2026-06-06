@@ -10,11 +10,11 @@ This repository currently contains the MVP runner. It supports one or more confi
 - `uv`
 - A working Codex login when running real Codex cases
 
-Install and run through `uv`:
+Run without installing the package:
 
 ```bash
-uv run codex-skill-bench list examples/basic-suite/suite.yaml
-uv run codex-skill-bench run examples/basic-suite/suite.yaml --results results/basic-suite-real
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval list examples/basic-suite/suite.yaml
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval run examples/basic-suite/suite.yaml --results results/basic-suite-real
 ```
 
 Run tests:
@@ -25,16 +25,34 @@ uv run pytest -q
 
 ## CLI
 
+Initialize a suite in the current directory:
+
+```bash
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval init [skill-path]
+```
+
+If `skill-path` is omitted, `init` starts an interactive wizard. It creates `suite.yaml`, `fixtures/`, and `fixtures/README.md`.
+
+Add a fixture from an existing workspace snapshot:
+
+```bash
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval add-fixture [name] [target-path] [prompt]
+```
+
+If arguments are omitted, `add-fixture` starts an interactive wizard. It creates `fixtures/<name>/workspace/` by copying `target-path`, then appends a test case to `fixtures/<name>/fixture.yaml` with `prompt: <prompt>`.
+
+When `target-path` is the suite root, snapshot creation excludes `fixtures/` and project-local `.agent/skills/` or `.agents/skills/` directories.
+
 List resolved runs without executing Codex:
 
 ```bash
-uv run codex-skill-bench list <suite.yaml>
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval list <suite.yaml>
 ```
 
 Run a suite:
 
 ```bash
-uv run codex-skill-bench run <suite.yaml> [options]
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval run <suite.yaml> [options]
 ```
 
 Options:
@@ -49,21 +67,20 @@ Use model name `default` to omit the SDK `model` argument and let Codex choose i
 
 ## Fixture Layout
 
-A suite points at a `fixtures` root. Each fixture is a directory with a workspace and one or more case YAML files:
+A suite points at a `fixtures` root. Each fixture is a directory with a fixed `workspace/` directory and a `fixture.yaml` containing its cases:
 
 ```text
 examples/basic-suite/
   suite.yaml
   fixtures/
+    README.md
     simple-python/
       fixture.yaml
       workspace/
         src/sample.py
-      cases/
-        add-license.yaml
 ```
 
-The runner copies `workspace/` into each run directory before invoking Codex. The original fixture workspace is not modified.
+The fixture directory name is the fixture id and title. The runner copies `workspace/` into each run directory before invoking Codex. The original fixture workspace is not modified. `fixtures/README.md` describes the local suite commands and explains `suite.yaml` and `fixture.yaml`.
 
 ## Suite Configuration
 
@@ -100,7 +117,6 @@ Fields:
 
 - `fixtures.root`: fixture directory relative to the suite file.
 - `fixtures.exclude`: optional fixture id glob deny-list.
-- `fixtures.caseGlob`: glob used inside each fixture directory. Defaults to `cases/*.yaml`.
 - `skills`: explicit source skill directories. Entries may be strings or `{name, path, materializeAs}` objects.
 - `models`: list of model names as strings.
 - `variants`: run variants. `kind: skill` materializes a skill; `kind: control` does not.
@@ -119,40 +135,46 @@ Codex execution uses the Python Codex SDK. A `codex` object and `skillRoot` are 
 `fixture.yaml`:
 
 ```yaml
-id: simple-python
-title: Simple Python fixture
-workspace:
-  path: workspace
+cases:
+  - title: Add license header
+    prompt: |
+      Add an MIT license header to src/sample.py.
 ```
 
 Fields:
 
-- `id`: fixture id used in run ids and reports.
-- `workspace.path`: workspace directory copied for every run. Defaults to `workspace`.
+- `cases`: list of case definitions for this fixture.
+
+The fixture id and title are the fixture directory name. The workspace directory is always `workspace/`.
 
 ## Case Configuration
 
-Example:
+Each `cases[]` item uses the case schema. Example:
 
 ```yaml
-id: add-license
 title: Add license header
 timeout: 5m
-promptByVariantKind:
+promptVariants:
   skill: |
-    Use the $license-header skill to add an MIT license header to src/sample.py.
+    Add an MIT license header to src/sample.py.
     Use year 2026 and owner Example Corp.
-  control: |
+  no-skill: |
     Add an MIT license header to src/sample.py.
     Use year 2026 and owner Example Corp.
 ```
 
 Prompt resolution order:
 
-1. `promptByVariant[variantName]`
-2. `promptByVariantKind[variantKind]`
-3. `prompt`
-4. `promptFile`
+1. `promptVariants[variantName]`
+2. `promptVariants["no-skill"]` for control variants
+3. `promptVariants["specific-skill[<skill-name>]"]` for matching skill variants
+4. `promptVariants["skill"]` for any skill variant
+5. `prompt`
+6. `promptFile`
+
+`prompt` and `promptVariants` are mutually exclusive. A string `prompt` is normalized as the same prompt for both `skill` and `no-skill`.
+
+For skill variants, `$skill` is replaced with the resolved skill reference such as `$license-header`. If the resolved prompt does not mention that skill reference, the runner prefixes a short instruction to use the selected skill so that the skill variant is still expected to activate the materialized skill.
 
 `timeout` accepts integer seconds or strings ending in `ms`, `s`, or `m`.
 

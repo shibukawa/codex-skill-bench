@@ -16,12 +16,14 @@ facts:
 
 ## Summary
 
-`codex-skill-bench` is a local Python CLI for running suites, validating case definitions, rendering reports, and inspecting previous results.
+`codex-skill-bench` is a local Python CLI for initializing benchmark suites, adding workspace fixtures, running suites, validating case definitions, rendering reports, and inspecting previous results. The documented end-user invocation is installation-free through `uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval ...`.
 
 ## Endpoints / Operations
 
 | Command | Purpose |
 | --- | --- |
+| `eval init [skill-path]` | Initialize `suite.yaml`, `fixtures/`, and `fixtures/README.md` in the current directory. |
+| `eval add-fixture [name] [target-path] [prompt]` | Create a fixture workspace snapshot and append a prompt case to `fixture.yaml`. |
 | `codex-skill-bench run <suite.yaml>` | Execute selected test cases and write results. |
 | `codex-skill-bench validate <suite.yaml>` | Validate suite and test case definitions without executing Codex. |
 | `codex-skill-bench report <results-dir>` | Render or re-render HTML and aggregate YAML from existing results. |
@@ -46,6 +48,36 @@ Common flags:
 | `--timeout <duration>` | Default run timeout. |
 | `--cleanup <policy>` | Override cleanup policy for this invocation. |
 | `--keep-runs` | Keep all run workspaces for debugging. Equivalent to `--cleanup never`. |
+
+`init [skill-path]` input:
+
+| Argument | Required | Purpose |
+| --- | --- | --- |
+| `skill-path` | no | Optional path to the skill under test. If omitted, `init` opens an interactive TUI wizard and asks for the skill path and suite defaults. |
+
+`init` behavior:
+
+- Create `suite.yaml` in the current directory when it does not already exist.
+- Create `fixtures/`.
+- Create `fixtures/README.md` with usage examples for `init`, `add-fixture`, `list`, and `run`, plus explanations of `suite.yaml` and `fixture.yaml`.
+- If `skill-path` is supplied, configure a skill variant and a no-skill control variant.
+- If `skill-path` is omitted, collect the missing values through a TUI wizard before writing files.
+
+`add-fixture [name] [target-path] [prompt]` input:
+
+| Argument | Required | Purpose |
+| --- | --- | --- |
+| `name` | no | Fixture directory name under `fixtures/`. |
+| `target-path` | no | Directory to snapshot into `fixtures/<name>/workspace/`. |
+| `prompt` | no | Prompt text to write into the generated test case. |
+
+`add-fixture` behavior:
+
+- If any required argument is omitted, open an interactive TUI wizard for missing values.
+- Create `fixtures/<name>/workspace/` from the target directory snapshot.
+- Create or update `fixtures/<name>/fixture.yaml`.
+- Append a test case whose `prompt` field is the supplied prompt.
+- When the target directory is the suite root, exclude `fixtures/` and project-local `.agent/skills/` and `.agents/skills/` directories from the snapshot.
 
 ## Response / Output
 

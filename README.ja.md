@@ -49,7 +49,7 @@ uv run codex-skill-bench run <suite.yaml> [options]
 
 ## Fixture構成
 
-suiteは `fixtures` のルートを指します。各fixtureは、ワークスペースと1つ以上のcase YAMLを持つディレクトリです。
+suiteは `fixtures` のルートを指します。各fixtureは、固定の `workspace/` と、case一覧を含む `fixture.yaml` を持つディレクトリです。
 
 ```text
 examples/basic-suite/
@@ -59,11 +59,9 @@ examples/basic-suite/
       fixture.yaml
       workspace/
         src/sample.py
-      cases/
-        add-license.yaml
 ```
 
-runnerは各runの前に `workspace/` をコピーします。元のfixtureワークスペースは変更されません。
+fixtureディレクトリ名がfixture idおよびtitleになります。runnerは各runの前に `workspace/` をコピーします。元のfixtureワークスペースは変更されません。
 
 ## Suite設定
 
@@ -100,7 +98,6 @@ runner:
 
 - `fixtures.root`: suiteファイルから見たfixtureディレクトリ。
 - `fixtures.exclude`: 除外するfixture idのglob deny-list。
-- `fixtures.caseGlob`: 各fixture内でcase YAMLを探すglob。デフォルトは `cases/*.yaml`。
 - `skills`: 明示的なsource skillディレクトリ。文字列、または `{name, path, materializeAs}` objectを指定できます。
 - `models`: モデル名の文字列配列。
 - `variants`: 実行variant一覧。`kind: skill` はskillを配置し、`kind: control` は配置しません。
@@ -119,40 +116,46 @@ Codex実行はPython Codex SDKを使います。`codex` objectと `skillRoot` �
 `fixture.yaml`:
 
 ```yaml
-id: simple-python
-title: Simple Python fixture
-workspace:
-  path: workspace
+cases:
+  - title: Add license header
+    prompt: |
+      Add an MIT license header to src/sample.py.
 ```
 
 フィールド:
 
-- `id`: run idやレポートで使うfixture id。
-- `workspace.path`: 各runでコピーするワークスペースディレクトリ。デフォルトは `workspace`。
+- `cases`: このfixtureで実行するcase定義のリスト。
+
+fixture idとtitleはfixtureディレクトリ名です。ワークスペースディレクトリは常に `workspace/` です。
 
 ## Case設定
 
-例:
+各 `cases[]` itemはcase schemaです。例:
 
 ```yaml
-id: add-license
 title: Add license header
 timeout: 5m
-promptByVariantKind:
+promptVariants:
   skill: |
-    Use the $license-header skill to add an MIT license header to src/sample.py.
+    Add an MIT license header to src/sample.py.
     Use year 2026 and owner Example Corp.
-  control: |
+  no-skill: |
     Add an MIT license header to src/sample.py.
     Use year 2026 and owner Example Corp.
 ```
 
 プロンプトの解決順:
 
-1. `promptByVariant[variantName]`
-2. `promptByVariantKind[variantKind]`
-3. `prompt`
-4. `promptFile`
+1. `promptVariants[variantName]`
+2. control variantでは `promptVariants["no-skill"]`
+3. skill variantでは一致する `promptVariants["specific-skill[<skill-name>]"]`
+4. skill variantでは `promptVariants["skill"]`
+5. `prompt`
+6. `promptFile`
+
+`prompt` と `promptVariants` は排他です。文字列の `prompt` は、同じ内容の `skill` / `no-skill` promptとして正規化されます。
+
+skill variantでは `$skill` が `$license-header` のような解決済みskill参照に置換されます。解決後のpromptがそのskill参照を含まない場合でも、runnerが選択skillを使う短い指示を先頭に補い、materialized skillが起動対象になるようにします。
 
 `timeout` は秒数の整数、または `ms`、`s`、`m` で終わる文字列を指定できます。
 

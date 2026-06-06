@@ -1,5 +1,10 @@
-id: simple-python
-title: Simple Python fixture
-workspace:
-  path: workspace
-
+cases:
+  - title: Add license header
+    timeout: 5m
+    promptVariants:
+      skill: |
+        Add an MIT license header to src/sample.py.
+        Use year 2026 and owner Example Corp.
+      no-skill: |
+        Add an MIT license header to src/sample.py.
+        Use year 2026 and owner Example Corp.
