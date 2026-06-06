@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Skill Bench"
+  short_description: "Run and author Codex skill benchmarks"
+  default_prompt: "Use $codex-skill-bench to add a fixture and run a skill comparison suite."

@@ -98,6 +98,21 @@ def test_init_writes_suite_and_fixture_readme(tmp_path: Path, monkeypatch) -> No
     readme = tmp_path / "fixtures" / "README.md"
     assert readme.exists()
     assert "codex-skill-bench.git add-fixture" in readme.read_text(encoding="utf-8")
+    bench_skill = tmp_path / ".agents" / "skills" / "codex-skill-bench" / "SKILL.md"
+    assert bench_skill.exists()
+    assert "uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval" in bench_skill.read_text(encoding="utf-8")
+    assert (tmp_path / ".agents" / "skills" / "codex-skill-bench" / "agents" / "openai.yaml").exists()
+    assert (tmp_path / ".agents" / "skills" / "codex-skill-bench" / "references" / "format.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "codex-skill-bench" / "references" / "results.md").exists()
+
+
+def test_init_installs_bench_skill_when_suite_exists(tmp_path: Path, monkeypatch) -> None:
+    (tmp_path / "suite.yaml").write_text("version: 1\nname: existing\nmodels:\n  - default\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["init"]) == 0
+
+    assert (tmp_path / ".agents" / "skills" / "codex-skill-bench" / "SKILL.md").exists()
 
 
 def test_add_fixture_snapshots_root_without_generated_dirs(tmp_path: Path, monkeypatch) -> None:

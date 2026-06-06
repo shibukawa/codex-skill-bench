@@ -22,7 +22,7 @@ Codex Skill Bench exposes small console scripts for initializing benchmark suite
 
 | Command | Purpose |
 | --- | --- |
-| `init [skill-path]` | Initialize `suite.yaml`, `fixtures/`, and `fixtures/README.md` in the current directory. |
+| `init [skill-path]` | Initialize `suite.yaml`, `fixtures/`, `fixtures/README.md`, and `.agents/skills/codex-skill-bench/` with bundled `agents/` and `references/` folders in the current directory. |
 | `add-fixture [name] [target-path] [prompt]` | Create a fixture workspace snapshot and append a prompt case to `fixture.yaml`. |
 | `eval <suite.yaml>` | Execute selected test cases and write results. |
 | `list <suite.yaml>` | List cases, models, variants, and assertion counts. |
@@ -61,6 +61,7 @@ Common flags:
 - Create `suite.yaml` in the current directory when it does not already exist.
 - Create `fixtures/`.
 - Create `fixtures/README.md` with usage examples for `init`, `add-fixture`, `list`, and `run`, plus explanations of `suite.yaml` and `fixture.yaml`.
+- Install the project-local helper skill at `.agents/skills/codex-skill-bench/`, including bundled `agents/` and `references/` folders.
 - If `skill-path` is supplied, configure a skill variant and a no-skill control variant.
 - If `skill-path` is omitted, collect the missing values through a TUI wizard before writing files.
 

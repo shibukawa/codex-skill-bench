@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from importlib import resources
 import shutil
 from pathlib import Path
 from typing import Any
@@ -101,8 +102,9 @@ def list_suite(args: argparse.Namespace) -> int:
 
 def init_suite(args: argparse.Namespace) -> int:
     root = Path.cwd()
+    suite_path = root / "suite.yaml"
     skill_path = args.skill_path
-    if skill_path is None:
+    if skill_path is None and not suite_path.exists():
         print("Codex Skill Bench init wizard")
         skill_text = input("Skill path (leave blank for no initial skill): ").strip()
         skill_path = Path(skill_text) if skill_text else None
@@ -112,11 +114,12 @@ def init_suite(args: argparse.Namespace) -> int:
     readme = fixtures_root / "README.md"
     if not readme.exists():
         readme.write_text(_fixtures_readme(), encoding="utf-8")
+    bench_skill = _install_bench_skill(root)
 
-    suite_path = root / "suite.yaml"
     if suite_path.exists():
         print(f"exists: {suite_path}")
         print(f"wrote {readme}")
+        print(f"installed {bench_skill}")
         return 0
 
     suite: dict[str, Any] = {
@@ -138,6 +141,7 @@ def init_suite(args: argparse.Namespace) -> int:
     suite_path.write_text(yaml.safe_dump(suite, sort_keys=False, allow_unicode=True), encoding="utf-8")
     print(f"wrote {suite_path}")
     print(f"wrote {readme}")
+    print(f"installed {bench_skill}")
     return 0
 
 
@@ -226,6 +230,25 @@ def _load_yaml_dict(path: Path) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def _install_bench_skill(root: Path) -> Path:
+    skill_dir = root / ".agents" / "skills" / "codex-skill-bench"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    package_skill = resources.files("codex_skill_bench").joinpath("bench_skill")
+    with resources.as_file(package_skill) as source:
+        _copy_tree_missing(source, skill_dir)
+    return skill_dir
+
+
+def _copy_tree_missing(source: Path, destination: Path) -> None:
+    for path in source.rglob("*"):
+        target = destination / path.relative_to(source)
+        if path.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+        elif not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+
+
 def _fixtures_readme() -> str:
     return """# Codex Skill Bench Fixtures
 
@@ -239,7 +262,7 @@ Initialize a suite without installing the package:
 uvx --from git+https://github.com/shibukawa/codex-skill-bench.git init [skill-path]
 ```
 
-If `skill-path` is omitted, `init` starts an interactive wizard and creates `suite.yaml`, `fixtures/`, and this README.
+If `skill-path` is omitted, `init` starts an interactive wizard and creates `suite.yaml`, `fixtures/`, this README, and `.agents/skills/codex-skill-bench/`.
 
 Add a fixture from a workspace snapshot:
 

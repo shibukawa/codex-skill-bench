@@ -31,7 +31,7 @@ Initialize a suite in the current directory:
 uvx --from git+https://github.com/shibukawa/codex-skill-bench.git init [skill-path]
 ```
 
-If `skill-path` is omitted, `init` starts an interactive wizard. It creates `suite.yaml`, `fixtures/`, and `fixtures/README.md`.
+If `skill-path` is omitted, `init` starts an interactive wizard. It creates `suite.yaml`, `fixtures/`, `fixtures/README.md`, and `.agents/skills/codex-skill-bench/` with bundled `agents/` and `references/` folders.
 
 Add a fixture from an existing workspace snapshot:
 
@@ -82,7 +82,7 @@ examples/basic-suite/
         src/sample.py
 ```
 
-The fixture directory name is the fixture id and title. The runner copies `workspace/` into each run directory before invoking Codex. The original fixture workspace is not modified. `fixtures/README.md` describes the local suite commands and explains `suite.yaml` and `fixture.yaml`.
+The fixture directory name is the fixture id and title. The runner copies `workspace/` into each run directory before invoking Codex. The original fixture workspace is not modified. `fixtures/README.md` describes the local suite commands and explains `suite.yaml` and `fixture.yaml`. `init` also installs a project-local helper skill at `.agents/skills/codex-skill-bench/`.
 
 ## Suite Configuration
 
