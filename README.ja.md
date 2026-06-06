@@ -226,3 +226,7 @@ skill variantでは、各runに次も出力されます。
 - 保存するイベントはCLIの生JSONストリームではなく、SDK resultを正規化したイベントです。
 - assertion、LLM judge、コマンド実行evaluation、retry、parallel実行、HTMLレポート、成果物diffはまだ未実装です。
 - token使用量はCodex JSONイベントに `turn.completed.usage` が出ることに依存します。timeoutしたrunでは、そのイベントが出る前だとtoken使用量が0になることがあります。
+
+## ライセンス
+
+このプロジェクトは GNU Affero General Public License v3.0 or later でライセンスされます。詳細は [LICENSE](LICENSE) を参照してください。

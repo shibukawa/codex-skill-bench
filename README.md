@@ -13,8 +13,8 @@ This repository currently contains the MVP runner. It supports one or more confi
 Run without installing the package:
 
 ```bash
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval list examples/basic-suite/suite.yaml
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval run examples/basic-suite/suite.yaml --results results/basic-suite-real
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git list examples/basic-suite/suite.yaml
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval examples/basic-suite/suite.yaml --results results/basic-suite-real
 ```
 
 Run tests:
@@ -28,7 +28,7 @@ uv run pytest -q
 Initialize a suite in the current directory:
 
 ```bash
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval init [skill-path]
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git init [skill-path]
 ```
 
 If `skill-path` is omitted, `init` starts an interactive wizard. It creates `suite.yaml`, `fixtures/`, and `fixtures/README.md`.
@@ -36,7 +36,7 @@ If `skill-path` is omitted, `init` starts an interactive wizard. It creates `sui
 Add a fixture from an existing workspace snapshot:
 
 ```bash
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval add-fixture [name] [target-path] [prompt]
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git add-fixture [name] [target-path] [prompt]
 ```
 
 If arguments are omitted, `add-fixture` starts an interactive wizard. It creates `fixtures/<name>/workspace/` by copying `target-path`, then appends a test case to `fixtures/<name>/fixture.yaml` with `prompt: <prompt>`.
@@ -46,14 +46,16 @@ When `target-path` is the suite root, snapshot creation excludes `fixtures/` and
 List resolved runs without executing Codex:
 
 ```bash
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval list <suite.yaml>
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git list <suite.yaml>
 ```
 
-Run a suite:
+Evaluate a suite:
 
 ```bash
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval run <suite.yaml> [options]
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval <suite.yaml> [options]
 ```
+
+`csb run` is kept as an alias for `eval` when using the grouped CLI entrypoint.
 
 Options:
 
@@ -245,3 +247,7 @@ For skill variants, each run also reports:
 - The runner stores a normalized SDK result event rather than a raw CLI JSON stream.
 - Assertions, LLM judges, command-based evaluation, retries, parallel execution, HTML reports, and artifact diffing are not implemented yet.
 - Token usage depends on `turn.completed.usage` appearing in the Codex JSON event stream. Timed-out runs may have zero token usage if that event has not been emitted.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 or later. See [LICENSE](LICENSE).
