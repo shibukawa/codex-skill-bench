@@ -1,0 +1,5 @@
+Copyright (c) {year} {owner}. All rights reserved.
+
+Confidential and proprietary. Unauthorized copying, modification,
+distribution, or use of this file, via any medium, is strictly prohibited
+without prior written permission.

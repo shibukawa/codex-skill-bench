@@ -1,0 +1,4 @@
+interface:
+  display_name: "License Header"
+  short_description: "Add and audit source license headers"
+  default_prompt: "Use $license-header to add license headers and report files missing them."

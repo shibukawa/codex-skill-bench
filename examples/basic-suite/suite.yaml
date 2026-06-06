@@ -1,0 +1,33 @@
+version: 1
+name: basic license header comparison
+
+fixtures:
+  root: fixtures
+  include:
+    - simple-python
+  caseGlob: cases/*.yaml
+
+models:
+  - name: default
+
+variants:
+  - name: with-skill
+    kind: skill
+    skillPath: ../../demo-skill/license-header
+    materializeAs: license-header
+  - name: no-skill
+    kind: control
+    controlOf: with-skill
+
+codex:
+  backend: cli
+  bin: codex
+  sandbox: workspace-write
+  skillRoot: .agents/skills
+
+security:
+  network: false
+  approval: never
+
+runner:
+  parallel: 1

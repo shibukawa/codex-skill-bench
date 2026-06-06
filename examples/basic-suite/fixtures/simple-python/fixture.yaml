@@ -1,0 +1,5 @@
+id: simple-python
+title: Simple Python fixture
+workspace:
+  path: workspace
+

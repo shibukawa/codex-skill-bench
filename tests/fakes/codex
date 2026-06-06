@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    out = Path(args[args.index("--output-last-message") + 1])
+    model = args[args.index("--model") + 1] if "--model" in args else "default"
+    prompt = args[-1]
+    out.write_text(f"done for {model}\n", encoding="utf-8")
+    usage = {
+        "input_tokens": 100 + len(prompt.split()),
+        "cached_input_tokens": 0,
+        "output_tokens": 12,
+        "reasoning_output_tokens": 0,
+    }
+    print(json.dumps({"type": "thread.started", "thread_id": "fake"}))
+    print(json.dumps({"type": "turn.completed", "usage": usage}))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,117 @@
+{"source_id": "artifact-usage-evaluation-policy", "target_id": "assertion-engine", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/assertion-engine.md"}
+{"source_id": "artifact-usage-evaluation-policy", "target_id": "report-generator", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/report-generator.md"}
+{"source_id": "artifact-usage-evaluation-policy", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/suite-config-model.md"}
+{"source_id": "artifact-usage-evaluation-policy", "target_id": "test-definition-format", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-definition-format.md"}
+{"source_id": "assertion-engine", "target_id": "test-case-model", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/test-case-model.md"}
+{"source_id": "assertion-engine", "target_id": "event-log-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/event-log-model.md"}
+{"source_id": "assertion-engine", "target_id": "test-definition-format", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/test-definition-format.md"}
+{"source_id": "assertion-engine", "target_id": "deterministic-and-llm-assertion-policy", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/deterministic-and-llm-assertion-policy.md"}
+{"source_id": "assertion-engine", "target_id": "test-case-model", "relation": "reads", "section": "Reads", "target_path": "specs/test-case-model.md"}
+{"source_id": "assertion-engine", "target_id": "codex-runner", "relation": "reads", "section": "Reads", "target_path": "specs/codex-runner.md"}
+{"source_id": "assertion-engine", "target_id": "report-generator", "relation": "writes", "section": "Writes", "target_path": "specs/report-generator.md"}
+{"source_id": "assertion-engine", "target_id": "codex-skill-bench-system", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/codex-skill-bench-system.md"}
+{"source_id": "cli-interface", "target_id": "codex-skill-bench-system", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-skill-bench-system.md"}
+{"source_id": "cli-interface", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/suite-config-model.md"}
+{"source_id": "cli-interface", "target_id": "test-case-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-case-model.md"}
+{"source_id": "cli-interface", "target_id": "workspace-scenario-set", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "cli-interface", "target_id": "report-generator", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/report-generator.md"}
+{"source_id": "cli-interface", "target_id": "security-and-isolation-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/security-and-isolation-policy.md"}
+{"source_id": "codex-runner", "target_id": "security-and-isolation-policy", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/security-and-isolation-policy.md"}
+{"source_id": "codex-runner", "target_id": "test-case-model", "relation": "links_to", "section": "Input", "target_path": "specs/test-case-model.md"}
+{"source_id": "codex-runner", "target_id": "workspace-scenario-set", "relation": "links_to", "section": "Input", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "codex-runner", "target_id": "comparison-matrix", "relation": "links_to", "section": "Input", "target_path": "specs/comparison-matrix.md"}
+{"source_id": "codex-runner", "target_id": "assertion-engine", "relation": "links_to", "section": "Output", "target_path": "specs/assertion-engine.md"}
+{"source_id": "codex-runner", "target_id": "report-generator", "relation": "links_to", "section": "Output", "target_path": "specs/report-generator.md"}
+{"source_id": "codex-runner", "target_id": "workspace-scenario-set", "relation": "links_to", "section": "Execution Rules", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "codex-runner", "target_id": "security-and-isolation-policy", "relation": "links_to", "section": "Execution Rules", "target_path": "specs/security-and-isolation-policy.md"}
+{"source_id": "codex-runner", "target_id": "event-log-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/event-log-model.md"}
+{"source_id": "codex-runner", "target_id": "test-case-model", "relation": "reads", "section": "Reads", "target_path": "specs/test-case-model.md"}
+{"source_id": "codex-runner", "target_id": "workspace-scenario-set", "relation": "reads", "section": "Reads", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "codex-runner", "target_id": "comparison-matrix", "relation": "reads", "section": "Reads", "target_path": "specs/comparison-matrix.md"}
+{"source_id": "codex-runner", "target_id": "project-local-skill-materialization-policy", "relation": "reads", "section": "Reads", "target_path": "specs/project-local-skill-materialization-policy.md"}
+{"source_id": "codex-runner", "target_id": "security-and-isolation-policy", "relation": "reads", "section": "Reads", "target_path": "specs/security-and-isolation-policy.md"}
+{"source_id": "codex-runner", "target_id": "event-log-model", "relation": "writes", "section": "Writes", "target_path": "specs/event-log-model.md"}
+{"source_id": "codex-runner", "target_id": "report-generator", "relation": "writes", "section": "Writes", "target_path": "specs/report-generator.md"}
+{"source_id": "codex-runner", "target_id": "codex-skill-bench-system", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/codex-skill-bench-system.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "test-case-model", "relation": "uses_component", "section": "Components", "target_path": "specs/test-case-model.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "suite-config-model", "relation": "uses_component", "section": "Components", "target_path": "specs/suite-config-model.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "workspace-scenario-set", "relation": "uses_component", "section": "Components", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "codex-runner", "relation": "uses_component", "section": "Components", "target_path": "specs/codex-runner.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "event-log-model", "relation": "uses_component", "section": "Components", "target_path": "specs/event-log-model.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "assertion-engine", "relation": "uses_component", "section": "Components", "target_path": "specs/assertion-engine.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "report-generator", "relation": "uses_component", "section": "Components", "target_path": "specs/report-generator.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "comparison-matrix", "relation": "uses_component", "section": "Components", "target_path": "specs/comparison-matrix.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "deterministic-and-llm-assertion-policy", "relation": "constrained_by", "section": "Decisions", "target_path": "specs/deterministic-and-llm-assertion-policy.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "project-local-skill-materialization-policy", "relation": "constrained_by", "section": "Decisions", "target_path": "specs/project-local-skill-materialization-policy.md"}
+{"source_id": "codex-skill-bench-system", "target_id": "python-implementation-policy", "relation": "constrained_by", "section": "Decisions", "target_path": "specs/python-implementation-policy.md"}
+{"source_id": "comparison-matrix", "target_id": "workspace-scenario-set", "relation": "links_to", "section": "Matrix Dimensions", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "comparison-matrix", "target_id": "test-case-model", "relation": "links_to", "section": "Matrix Dimensions", "target_path": "specs/test-case-model.md"}
+{"source_id": "comparison-matrix", "target_id": "codex-skill-bench-system", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-skill-bench-system.md"}
+{"source_id": "comparison-matrix", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/suite-config-model.md"}
+{"source_id": "comparison-matrix", "target_id": "workspace-scenario-set", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "comparison-matrix", "target_id": "report-generator", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/report-generator.md"}
+{"source_id": "comparison-matrix", "target_id": "codex-runner", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-runner.md"}
+{"source_id": "comparison-matrix", "target_id": "project-local-skill-materialization-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/project-local-skill-materialization-policy.md"}
+{"source_id": "deterministic-and-llm-assertion-policy", "target_id": "assertion-engine", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/assertion-engine.md"}
+{"source_id": "deterministic-and-llm-assertion-policy", "target_id": "report-generator", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/report-generator.md"}
+{"source_id": "deterministic-and-llm-assertion-policy", "target_id": "artifact-usage-evaluation-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/artifact-usage-evaluation-policy.md"}
+{"source_id": "event-log-model", "target_id": "assertion-engine", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/assertion-engine.md"}
+{"source_id": "event-log-model", "target_id": "report-generator", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/report-generator.md"}
+{"source_id": "project-local-skill-materialization-policy", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/suite-config-model.md"}
+{"source_id": "project-local-skill-materialization-policy", "target_id": "codex-runner", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-runner.md"}
+{"source_id": "project-local-skill-materialization-policy", "target_id": "comparison-matrix", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/comparison-matrix.md"}
+{"source_id": "python-implementation-policy", "target_id": "codex-skill-bench-system", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-skill-bench-system.md"}
+{"source_id": "python-implementation-policy", "target_id": "codex-runner", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-runner.md"}
+{"source_id": "python-implementation-policy", "target_id": "cli-interface", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/cli-interface.md"}
+{"source_id": "report-generator", "target_id": "assertion-engine", "relation": "links_to", "section": "YAML Result Requirements", "target_path": "specs/assertion-engine.md"}
+{"source_id": "report-generator", "target_id": "assertion-engine", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/assertion-engine.md"}
+{"source_id": "report-generator", "target_id": "comparison-matrix", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/comparison-matrix.md"}
+{"source_id": "report-generator", "target_id": "codex-skill-bench-system", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/codex-skill-bench-system.md"}
+{"source_id": "report-generator", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/suite-config-model.md"}
+{"source_id": "report-generator", "target_id": "workspace-scenario-set", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "report-generator", "target_id": "security-and-isolation-policy", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/security-and-isolation-policy.md"}
+{"source_id": "report-generator", "target_id": "retry-and-stability-policy", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/retry-and-stability-policy.md"}
+{"source_id": "retry-and-stability-policy", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/suite-config-model.md"}
+{"source_id": "retry-and-stability-policy", "target_id": "test-definition-format", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-definition-format.md"}
+{"source_id": "retry-and-stability-policy", "target_id": "report-generator", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/report-generator.md"}
+{"source_id": "security-and-isolation-policy", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/suite-config-model.md"}
+{"source_id": "security-and-isolation-policy", "target_id": "codex-runner", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-runner.md"}
+{"source_id": "security-and-isolation-policy", "target_id": "report-generator", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/report-generator.md"}
+{"source_id": "security-and-isolation-policy", "target_id": "project-local-skill-materialization-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/project-local-skill-materialization-policy.md"}
+{"source_id": "suite-config-model", "target_id": "retry-and-stability-policy", "relation": "links_to", "section": "Rules / Constraints", "target_path": "specs/retry-and-stability-policy.md"}
+{"source_id": "suite-config-model", "target_id": "test-definition-format", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-definition-format.md"}
+{"source_id": "suite-config-model", "target_id": "workspace-scenario-set", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "suite-config-model", "target_id": "test-case-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-case-model.md"}
+{"source_id": "suite-config-model", "target_id": "codex-runner", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-runner.md"}
+{"source_id": "suite-config-model", "target_id": "comparison-matrix", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/comparison-matrix.md"}
+{"source_id": "suite-config-model", "target_id": "project-local-skill-materialization-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/project-local-skill-materialization-policy.md"}
+{"source_id": "suite-config-model", "target_id": "security-and-isolation-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/security-and-isolation-policy.md"}
+{"source_id": "suite-config-model", "target_id": "retry-and-stability-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/retry-and-stability-policy.md"}
+{"source_id": "suite-config-model", "target_id": "deterministic-and-llm-assertion-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/deterministic-and-llm-assertion-policy.md"}
+{"source_id": "suite-config-model", "target_id": "artifact-usage-evaluation-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/artifact-usage-evaluation-policy.md"}
+{"source_id": "suite-config-model", "target_id": "python-implementation-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/python-implementation-policy.md"}
+{"source_id": "test-case-model", "target_id": "test-definition-format", "relation": "links_to", "section": "Summary", "target_path": "specs/test-definition-format.md"}
+{"source_id": "test-case-model", "target_id": "workspace-scenario-set", "relation": "links_to", "section": "Summary", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "test-case-model", "target_id": "workspace-scenario-set", "relation": "links_to", "section": "Fields", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "test-case-model", "target_id": "workspace-scenario-set", "relation": "links_to", "section": "Rules / Constraints", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "test-case-model", "target_id": "run-identity", "relation": "uses_common_detail", "section": "Uses Common Details", "target_path": "specs/shared/run-identity.md"}
+{"source_id": "test-case-model", "target_id": "codex-skill-bench-system", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/codex-skill-bench-system.md"}
+{"source_id": "test-case-model", "target_id": "test-definition-format", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/test-definition-format.md"}
+{"source_id": "test-case-model", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/suite-config-model.md"}
+{"source_id": "test-case-model", "target_id": "workspace-scenario-set", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "test-case-model", "target_id": "assertion-engine", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/assertion-engine.md"}
+{"source_id": "test-case-model", "target_id": "comparison-matrix", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/comparison-matrix.md"}
+{"source_id": "test-definition-format", "target_id": "suite-config-model", "relation": "links_to", "section": "Inheritance Rules", "target_path": "specs/suite-config-model.md"}
+{"source_id": "test-definition-format", "target_id": "workspace-scenario-set", "relation": "links_to", "section": "Inheritance Rules", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "test-definition-format", "target_id": "suite-config-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/suite-config-model.md"}
+{"source_id": "test-definition-format", "target_id": "workspace-scenario-set", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/workspace-scenario-set.md"}
+{"source_id": "test-definition-format", "target_id": "test-case-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-case-model.md"}
+{"source_id": "test-definition-format", "target_id": "assertion-engine", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/assertion-engine.md"}
+{"source_id": "test-definition-format", "target_id": "event-log-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/event-log-model.md"}
+{"source_id": "test-definition-format", "target_id": "retry-and-stability-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/retry-and-stability-policy.md"}
+{"source_id": "workspace-scenario-set", "target_id": "test-case-model", "relation": "links_to", "section": "Scenario Files", "target_path": "specs/test-case-model.md"}
+{"source_id": "workspace-scenario-set", "target_id": "test-definition-format", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-definition-format.md"}
+{"source_id": "workspace-scenario-set", "target_id": "test-case-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/test-case-model.md"}
+{"source_id": "workspace-scenario-set", "target_id": "codex-runner", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/codex-runner.md"}
+{"source_id": "workspace-scenario-set", "target_id": "report-generator", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/report-generator.md"}
+{"source_id": "workspace-scenario-set", "target_id": "security-and-isolation-policy", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/security-and-isolation-policy.md"}
