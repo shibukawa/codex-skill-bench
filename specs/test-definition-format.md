@@ -46,29 +46,27 @@ version: 1
 name: license header skill suite
 
 fixtures:
-  root: fixtures
-  include:
-    - license-header-basic
-  caseGlob: cases/*.yaml
+  exclude:
+    - experimental-*
+
+skills:
+  - name: license-header
+    path: demo-skill/license-header
 
 models:
-  - name: gpt-5.5
+  - gpt-5.5
 
 variants:
   - name: current
-    skillPath: demo-skill/license-header
-    materializeAs: license-header
+    skill: license-header
 
-codex:
-  backend: sdk
-  bin: codex
+security:
   sandbox: workspace-write
   auth:
     mode: inherit
     preflight: true
   home:
     mode: inherit
-  skillRoot: .agents/skills
 
 defaults:
   timeout: 10m
@@ -272,8 +270,9 @@ promptByVariantKind:
 - Case `promptFile` and standalone `workspace.fixturePath` resolve relative to the case file.
 - Assertion `path` values resolve relative to the copied run workspace.
 - Assertion paths must not be absolute and must not escape the run workspace.
-- Skill paths in suite `variants[*].skillPath` resolve relative to the suite file.
-- `kind: control` variants do not require `skillPath` and must not materialize the target skill.
+- Skill paths in root suite `skills` resolve relative to the suite file.
+- `kind: skill` variants select a configured root skill by `skill`, unless the suite has exactly one configured skill.
+- `kind: control` variants do not require `skill` and must not materialize the target skill.
 - `diffIgnore` patterns are evaluated relative to the copied run workspace and use gitignore-like matching.
 
 ## Prompt Template Variables

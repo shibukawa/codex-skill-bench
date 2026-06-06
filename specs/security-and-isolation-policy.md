@@ -103,9 +103,9 @@ security:
   approval: never
 ```
 
-`network: false` should configure Codex and the runner environment to avoid network access where supported. For `workspace-write`, the runner should set `sandbox_workspace_write.network_access=false` in the backend config; `network: true` should set `sandbox_workspace_write.network_access=true`. In the CLI backend this is passed as `-c sandbox_workspace_write.network_access=<true|false>`.
+`network: false` should configure Codex and the runner environment to avoid network access where supported. For `workspace-write`, the runner should set `sandbox_workspace_write.network_access=false` in SDK config when supported; `network: true` should set `sandbox_workspace_write.network_access=true`.
 
-`approval` maps to the backend approval policy. In the SDK backend this is sent as the SDK approval policy field; in the CLI diagnostics backend this is passed as the Codex top-level approval flag, for example `codex -a never exec ...` or `codex -a untrusted exec ...`. The runner should record the resolved policy in every run result.
+`approval` maps to the SDK approval policy field. The runner should record the resolved policy in every run result.
 
 Approval policy is not a complete security boundary. In local probes on 2026-06-01, both `-a never` and `-a untrusted` allowed simple trusted commands such as `pwd`, and both allowed creating a file inside the `workspace-write` run workspace. Therefore the benchmark should treat approval mode as Codex execution policy metadata and a possible behavior variable, not as a guarantee that every shell command is blocked.
 

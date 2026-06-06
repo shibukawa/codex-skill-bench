@@ -24,7 +24,7 @@ Codex Skill Bench is a Python CLI tool for verifying whether Codex skills behave
 
 - Run repeatable skill behavior tests from declarative test case definitions.
 - Provide each scenario with a workspace fixture, usually from `fixtures/<fixture-id>/workspace/`, and a natural-language instruction prompt.
-- Capture Codex execution as structured events through the Codex SDK, retaining `codex exec --json` only as a diagnostics compatibility path.
+- Capture Codex execution as structured events through the Codex SDK.
 - Evaluate deterministic assertions without an LLM when the expected condition is structurally checkable.
 - Evaluate produced artifacts with same-model structured-output usage queries when artifact usability is part of the skill's value.
 - Evaluate heuristic or semantic assertions with an LLM judge only when deterministic checks are insufficient.
@@ -43,7 +43,7 @@ Codex Skill Bench is a Python CLI tool for verifying whether Codex skills behave
 1. Load suite configuration, workspace fixtures, and test case definitions.
 2. Materialize the workspace fixture for each case into an isolated run directory, copying the parent fixture workspace when present.
 3. Materialize the target skill implementation variant into the copied run workspace, defaulting to `.agents/skills/<skill-name>/`.
-4. Execute Codex through the configured execution backend with `workspace-write` sandbox plus resolved approval and network settings.
+4. Execute Codex through the SDK with `workspace-write` sandbox plus resolved approval and network settings.
 5. Save raw events to `results/<run-id>.events.jsonl` and the final assistant message to `results/<run-id>.final.md`.
 6. Capture filesystem diff and selected run metadata.
 7. Evaluate assertions from the test case.
@@ -52,7 +52,7 @@ Codex Skill Bench is a Python CLI tool for verifying whether Codex skills behave
 
 ## Required Codex Execution Contract
 
-The runner must support a backend-neutral execution contract:
+The runner must support an SDK execution contract:
 
 | Field | Required | Notes |
 | --- | --- | --- |
@@ -61,25 +61,26 @@ The runner must support a backend-neutral execution contract:
 | `model` | no | Model selected by suite matrix. |
 | `sandbox` | yes | Defaults to `workspace-write`. |
 | `approvalPolicy` | yes | Resolved suite approval policy. |
-| `config` | no | Backend-specific Codex config overrides, including network policy. |
+| `config` | no | Codex SDK config overrides, including network policy where supported. |
 | `ephemeral` | yes | Runs should avoid polluting persistent Codex thread history where supported. |
-| `events` | yes | Raw SDK events or diagnostics compatibility JSONL stream must be preserved. |
+| `events` | yes | Raw or normalized SDK events must be preserved. |
 | `finalMessage` | yes | Final assistant message must be written to result artifacts. |
 
-The required implementation path is the Codex SDK backend. It must call Codex directly and convert returned events into the shared event model. A compatibility CLI backend may support this command shape for diagnostics and comparison:
+The required implementation path is the Codex SDK. It must call Codex directly and convert returned events into the shared event model.
 
-```bash
-codex -a "$APPROVAL" \
-  -c "sandbox_workspace_write.network_access=$NETWORK" \
-  exec --json \
-  --sandbox workspace-write \
-  --cd "runs/$CASE_ID/workspace" \
-  --output-last-message "results/$CASE_ID.final.md" \
-  "$PROMPT" \
-  > "results/$CASE_ID.events.jsonl"
+```python
+with Codex() as codex:
+    thread = codex.thread_start(
+        cwd=str(run_workspace),
+        ephemeral=True,
+        model=model,
+        sandbox=sandbox,
+        approval_mode=approval,
+    )
+    result = thread.run(prompt, cwd=str(run_workspace), model=model, sandbox=sandbox)
 ```
 
-The actual implementation may add model, approval, timeout, and config options, but it must preserve structured event capture, final-message capture, and project-local skill discovery from the copied run workspace. The default implementation must not replace `CODEX_HOME`.
+The implementation may add model, approval, timeout, and config options, but it must preserve structured event capture, final-message capture, and project-local skill discovery from the copied run workspace. The default implementation must not replace `CODEX_HOME`.
 
 ## Components
 

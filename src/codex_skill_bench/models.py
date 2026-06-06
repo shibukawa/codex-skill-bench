@@ -8,13 +8,20 @@ from typing import Any
 @dataclass(frozen=True)
 class ModelConfig:
     name: str
-    config: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SkillConfig:
+    name: str
+    path: Path
+    materialize_as: str | None = None
 
 
 @dataclass(frozen=True)
 class VariantConfig:
     name: str
     kind: str = "skill"
+    skill_name: str | None = None
     skill_path: Path | None = None
     materialize_as: str | None = None
     control_of: str | None = None
@@ -49,9 +56,9 @@ class SuiteConfig:
     name: str
     fixtures_root: Path
     case_glob: str
+    skills: list[SkillConfig]
     models: list[ModelConfig]
     variants: list[VariantConfig]
-    codex: dict[str, Any]
     security: dict[str, Any]
     runner: dict[str, Any]
     defaults: dict[str, Any]
@@ -81,4 +88,3 @@ class RunSpec:
 
 def safe_id(value: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in value).strip("-")
-

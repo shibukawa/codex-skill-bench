@@ -8,7 +8,7 @@ Codex Skill Bench は、Codex skill をワークスペースfixture単位で比�
 
 - Python 3.11+
 - `uv`
-- 実Codexを動かす場合は、ログイン済みで利用可能な `codex` CLI
+- 実Codexを動かす場合は、利用可能なCodexログイン
 
 `uv` 経由で実行します。
 
@@ -45,7 +45,7 @@ uv run codex-skill-bench run <suite.yaml> [options]
 - `--fixture <text>`: idに指定文字列を含むfixtureだけを実行。
 - `--case <text>`: idに指定文字列を含むcaseだけを実行。
 
-モデル名に `default` を指定すると、Codex CLI呼び出し時に `--model` を渡しません。ログイン済みCodex CLI側の既定モデルを使いたい場合に使います。
+モデル名に `default` を指定すると、SDKの `model` 引数を渡さず、Codex側の既定モデルを使います。
 
 ## Fixture構成
 
@@ -73,31 +73,22 @@ runnerは各runの前に `workspace/` をコピーします。元のfixtureワ�
 version: 1
 name: basic license header comparison
 
-fixtures:
-  root: fixtures
-  include:
-    - simple-python
-  caseGlob: cases/*.yaml
+skills:
+  - path: ../../demo-skill/license-header
 
 models:
-  - name: default
+  - default
 
 variants:
   - name: with-skill
     kind: skill
-    skillPath: ../../demo-skill/license-header
-    materializeAs: license-header
+    skill: license-header
   - name: no-skill
     kind: control
     controlOf: with-skill
 
-codex:
-  backend: cli
-  bin: codex
-  sandbox: workspace-write
-  skillRoot: .agents/skills
-
 security:
+  sandbox: workspace-write
   network: false
   approval: never
 
@@ -108,21 +99,20 @@ runner:
 主なフィールド:
 
 - `fixtures.root`: suiteファイルから見たfixtureディレクトリ。
-- `fixtures.include`: 実行対象fixture idのallow-list。
-- `fixtures.exclude`: 除外するfixture idのdeny-list。
+- `fixtures.exclude`: 除外するfixture idのglob deny-list。
 - `fixtures.caseGlob`: 各fixture内でcase YAMLを探すglob。デフォルトは `cases/*.yaml`。
-- `models`: モデル一覧。文字列または `{name: ...}` を指定できます。
+- `skills`: 明示的なsource skillディレクトリ。文字列、または `{name, path, materializeAs}` objectを指定できます。
+- `models`: モデル名の文字列配列。
 - `variants`: 実行variant一覧。`kind: skill` はskillを配置し、`kind: control` は配置しません。
-- `variants[].skillPath`: skill variantでコピーするskillディレクトリ。
-- `variants[].materializeAs`: `codex.skillRoot` 配下に作るskillディレクトリ名。
+- `variants[].skill`: root `skills` の中から配置するskill名。
+- `variants[].materializeAs`: `.agents/skills` 配下に作るskillディレクトリ名。
 - `variants[].controlOf`: 比較対象のskill variant名。
-- `codex.bin`: Codex CLI実行ファイル。デフォルトは `codex`。
-- `codex.sandbox`: `codex exec --sandbox` に渡す値。
-- `codex.skillRoot`: runワークスペース内でskillを配置する場所。デフォルトは `.agents/skills`。
-- `security.approval`: `codex -a` に渡す値。デフォルトは `never`。
-- `security.network`: `sandbox_workspace_write.network_access=true|false` として渡します。
+- `security.sandbox`: Codex SDKのthread/turn実行に渡すsandbox。
+- `security.approval`: Codex SDK approval modeに変換されます。デフォルトは `never`。
 
-`codex.backend` と `runner.parallel` は設定として保持していますが、現時点のMVPではCLI backendを逐次実行します。
+Codex実行はPython Codex SDKを使います。`codex` objectと `skillRoot` はsuite schemaには含めません。
+
+`runner.parallel` は設定として保持していますが、現時点のMVPでは逐次実行します。
 
 ## Fixture設定
 
@@ -172,25 +162,18 @@ promptByVariantKind:
 
 1. `results/runs/<run-id>/` を作成。
 2. fixtureのワークスペースを `results/runs/<run-id>/workspace` にコピー。
-3. `kind: skill` の場合、`skillPath` を `<workspace>/<codex.skillRoot>/<materializeAs>` にコピー。
+3. `kind: skill` の場合、選択されたroot `skills` entryを `<workspace>/.agents/skills/<materializeAs-or-skill-name>` にコピー。
 4. 現在のvariant向けのpromptを解決。
-5. 次の形でCodexを実行。
+5. skill variantでは、まず別threadでpreloadを実行します。この強制preloadはskill読み込みのコストとコンテキスト量を測るためだけのもので、本番のベンチマークturnには再利用しません。
+6. 実際のベンチマークturnを実行。
 
-   ```bash
-   codex -a <approval> \
-     -c sandbox_workspace_write.network_access=<true|false> \
-     exec --json --ephemeral --skip-git-repo-check \
-     --sandbox <sandbox> \
-     [--model <model>] \
-     --cd <workspace> \
-     --output-last-message <run-root>/final.md \
-     <prompt>
-   ```
+   runnerは `openai_codex.Codex` を使い、runワークスペースを `cwd` にした一時threadを作成して `thread.run(...)` を呼びます。本番のベンチマークpromptは通常のテキストとして渡し、`SkillInput` で強制起動しません。これにより、promptがskillを正しく起動できるかも検証対象になります。
 
-6. Codex JSONイベントストリームを `events.jsonl` に保存。
-7. stderrを `stderr.log` に保存。
-8. `turn.completed.usage` イベントを読み取り、token使用量を集計。
-9. run単位のresult YAMLと、全体の `summary.yaml` を出力。
+7. Codex JSONイベントストリーム、またはSDK result要約を `events.jsonl` に保存。
+8. stderrを `stderr.log` に保存。
+9. `turn.completed.usage` イベントを読み取り、token使用量を集計。
+10. skill variantの本番turnで `.agents/skills/<skill>/...` のような配置済みskillパスがSDKイベント内に出なければ、skill未起動としてエラーにします。
+11. run単位のresult YAMLと、全体の `summary.yaml` を出力。
 
 ## 出力
 
@@ -200,6 +183,7 @@ promptByVariantKind:
 - `events.jsonl`: Codexの生JSONイベント。
 - `final.md`: `--output-last-message` で保存された最終応答。
 - `stderr.log`: Codex stderrまたはrunnerエラー。
+- `preload.events.jsonl`, `preload.final.md`, `preload.stderr.log`: SDK skill variantのpreload成果物。
 - `<run-id>.result.yaml`: run単位のレポート。
 
 集約された `summary.yaml` は次の階層です。
@@ -219,15 +203,23 @@ comparisons:
     controlVariant: no-skill
     generationTokenDelta: -6718
     generationDurationDeltaMs: -5170
+    generationEstimatedRepeatDurationDeltaMs: -3000
 ```
 
 `generationTokenDelta` は `control.totalTokens - skill.totalTokens` です。
 `generationDurationDeltaMs` は `control.durationMs - skill.durationMs` です。
+`generationEstimatedRepeatDurationDeltaMs` は `control.durationMs - skill.estimatedRepeatDurationMs` です。
 
 値が正なら、skill variantの方がtokenまたは時間を節約したという意味です。
 
+skill variantでは、各runに次も出力されます。
+
+- `preload.durationMs`: 別threadで強制skill loadした時間。
+- `preload.usage`: 強制skill loadのtoken使用量。
+- `estimatedRepeatDurationMs`: `durationMs - preload.durationMs` を0以上に丸めた値。preloadコストを差し引いた繰り返し実行時の概算時間です。
+
 ## 現在の制限
 
-- 現在のrunnerはPython Codex SDK backendではなく、Codex CLI互換経路で実行します。
+- 保存するイベントはCLIの生JSONストリームではなく、SDK resultを正規化したイベントです。
 - assertion、LLM judge、コマンド実行evaluation、retry、parallel実行、HTMLレポート、成果物diffはまだ未実装です。
 - token使用量はCodex JSONイベントに `turn.completed.usage` が出ることに依存します。timeoutしたrunでは、そのイベントが出る前だとtoken使用量が0になることがあります。

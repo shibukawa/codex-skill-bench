@@ -40,10 +40,10 @@ results/
 | --- | --- | --- | --- |
 | `version` | integer | yes | Suite schema version. Initial value is `1`. |
 | `name` | string | yes | Human-readable suite name. |
-| `fixtures` | object | no | Discovery roots and include/exclude filters. Defaults to `fixtures/`. |
+| `fixtures` | object | no | Discovery root and exclude filters. Defaults to `fixtures/`. |
+| `skills` | array | no | Explicit skill source directories available to skill variants. |
 | `models` | array | yes | Codex model names or model configs to evaluate. |
 | `variants` | array | no | Skill implementation variants and optional no-skill control variants. Defaults to one `default` variant. |
-| `codex` | object | no | Codex execution backend, sandbox, auth, config, and environment settings. |
 | `security` | object | no | Environment, network, approval, redaction, and cleanup policy. |
 | `usageEvaluation` | object | no | Artifact-usage evaluation settings using the same model under test. |
 | `judge` | object | no | Optional heuristic LLM judge configuration. |
@@ -59,24 +59,43 @@ results/
 | Field | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `root` | string | `fixtures` | Directory containing workspace fixtures. |
-| `include` | array | all | Fixture ID or glob patterns to include. |
-| `exclude` | array | none | Fixture ID or glob patterns to exclude. |
+| `exclude` | array | none | Fixture ID glob patterns to exclude. |
 | `caseGlob` | string | `cases/*.yaml` | Case files under each fixture. |
 
-## Codex Settings
+## Skill Settings
 
-`codex` may define:
+The root `skills` array defines explicit skill source directories that can be selected by variants. Entries may be strings or objects.
+
+String form:
+
+```yaml
+skills:
+  - .agents/skills/local-agents-probe
+```
+
+Object form:
+
+```yaml
+skills:
+  - name: license-header
+    path: ../../demo-skill/license-header
+    materializeAs: license-header
+```
 
 | Field | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `backend` | string | `sdk` | `sdk` or `cli`. `sdk` is required for normal execution; `cli` is diagnostics compatibility only. |
-| `bin` | string | `codex` | Codex executable path, used only by the diagnostics CLI backend. |
-| `sandbox` | string | `workspace-write` | Passed to Codex execution backend. |
-| `auth.mode` | string | `inherit` | Assumes Codex is already logged in and inherits usable local auth. |
-| `auth.preflight` | boolean | `true` | Run a login/doctor preflight before suite execution. |
-| `home.mode` | string | `inherit` | Use the logged-in Codex home by default. |
-| `skillRoot` | string | `.agents/skills` | Project-local skill root inside each copied run workspace. |
-| `config` | object | none | Extra Codex config overrides. For CLI backend these become `-c key=value`; for SDK they are sent as backend config. |
+| `skills[]` | string | none | Explicit source skill directory. Skill name is inferred from the directory basename. |
+| `skills[].name` | string | path basename | Logical skill name used by variants. |
+| `skills[].path` | string | required | Explicit source skill directory containing `SKILL.md`. |
+| `skills[].materializeAs` | string | `name` | Destination directory name under `.agents/skills`. |
+
+Rules:
+
+- A suite may define multiple skills so variants can compare different skill implementations.
+- Skill source paths are resolved relative to the suite file unless absolute.
+- Skill-enabled variants should reference a configured skill by `skill`.
+- If a suite defines exactly one skill, a `kind: skill` variant may omit `skill` and use that single skill.
+- The runner must materialize only the skill selected by the current variant.
 
 ## Variant Settings
 
@@ -86,14 +105,14 @@ Each `variants` entry defines either a skill-enabled variant or a no-skill contr
 | --- | --- | --- | --- |
 | `name` | string | required | Variant ID used in run identity and reports. |
 | `kind` | string | `skill` | `skill` or `control`. `control` means no target skill is materialized. |
-| `skillPath` | string | required for `kind: skill` | Source skill directory containing `SKILL.md`. |
-| `materializeAs` | string | source skill name | Skill directory name under `codex.skillRoot`. |
+| `skill` | string | required for `kind: skill` unless exactly one root skill exists | Root `skills` entry to materialize. |
+| `materializeAs` | string | selected skill materialization name | Skill directory name under `.agents/skills`. Overrides `skills[].materializeAs`. |
 | `controlOf` | string | none | Optional skill variant name this no-skill control should be compared against. |
 | `allowAmbientSkills` | boolean | `false` | For control variants only. When false, visible target skills cause setup failure. |
 
 Rules:
 
-- `kind: skill` variants must materialize exactly the selected skill unless the case intentionally tests multiple skills.
+- `kind: skill` variants must materialize exactly the selected root skill unless the case intentionally tests multiple skills.
 - `kind: control` variants must not materialize the target skill.
 - Control variants should run the same prompts and assertions as skill variants unless the case overrides variant behavior.
 - A control variant should verify that the target skill is not visible in Codex SDK preflight before execution.
@@ -109,8 +128,9 @@ Rules:
 | `env.allow` | array | baseline | Environment variable names allowed in addition to baseline. |
 | `env.denyPatterns` | array | secret-like patterns | Environment variable name patterns to suppress or redact. |
 | `env.loadFixtureEnv` | boolean | `true` | Load `fixtures/.env.skill` and fixture-specific `.env.skill` files. |
+| `sandbox` | string | `workspace-write` | Passed to Codex SDK thread and turn execution. |
 | `network` | boolean | `false` | Suite-level network policy for Codex runs. Maps to `sandbox_workspace_write.network_access` for `workspace-write`. |
-| `approval` | string | `never` | Suite-level Codex approval mode. Maps to the top-level `codex -a` flag. |
+| `approval` | string | `never` | Suite-level Codex approval mode. Maps to the Codex SDK approval mode field. |
 | `redaction.enabled` | boolean | `true` | Redact secret-looking values from report previews and HTML. |
 | `cleanup` | string | `on_pass` | `always`, `on_pass`, or `never`. |
 
@@ -188,45 +208,32 @@ version: 1
 name: codex skill bench
 
 fixtures:
-  root: fixtures
-  include:
-    - go-sample-project
-  caseGlob: cases/*.yaml
+  exclude:
+    - experimental-*
+
+skills:
+  - name: spec-compiler
+    path: ../skills/spec-compiler
+  - name: spec-compiler-experimental
+    path: ../skills/spec-compiler-experimental
+    materializeAs: spec-compiler
 
 models:
-  - name: gpt-5.5
-  - name: gpt-5.5
-    config:
-      model_reasoning_effort: high
-    stability:
-      maxAttempts: 2
-      passPolicy: all
+  - gpt-5.5
 
 variants:
   - name: default
     kind: skill
-    skillPath: ../skills/spec-compiler
-    materializeAs: spec-compiler
+    skill: spec-compiler
   - name: experimental
     kind: skill
-    skillPath: ../skills/spec-compiler-experimental
-    materializeAs: spec-compiler
+    skill: spec-compiler-experimental
   - name: no-skill
     kind: control
     controlOf: default
 
-codex:
-  backend: sdk
-  bin: codex
-  sandbox: workspace-write
-  auth:
-    mode: inherit
-    preflight: true
-  home:
-    mode: inherit
-  skillRoot: .agents/skills
-
 security:
+  sandbox: workspace-write
   env:
     policy: minimal
     loadFixtureEnv: true
@@ -315,4 +322,4 @@ report:
 
 ## Native-Language Summary
 
-`suite.yaml` は `fixtures/` の親に置く全体設定で、利用モデル、skill variant、skillなしcontrol、Codex実行backend設定、fixture discovery、安定化、レポート出力をまとめて制御する。
+`suite.yaml` は `fixtures/` の親に置く全体設定で、利用モデル、rootの `skills` 配列、skill variant、skillなしcontrol、security内のCodex SDK実行設定、fixture discovery、安定化、レポート出力をまとめて制御する。

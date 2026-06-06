@@ -17,7 +17,7 @@ facts:
 
 ## Summary
 
-The Codex Runner materializes isolated run directories, prepares project-local skills, invokes Codex through the configured execution backend, and captures raw execution artifacts.
+The Codex Runner materializes isolated run directories, prepares project-local skills, invokes Codex through the Python Codex SDK, and captures normalized execution artifacts.
 
 ## Responsibilities
 
@@ -25,9 +25,9 @@ The Codex Runner materializes isolated run directories, prepares project-local s
 - Install or overlay the selected skill implementation variant into the copied run workspace's project-local skill root, unless the selected variant is a no-skill control.
 - Build the Codex execution request with configured model, sandbox, approval, network, timeout, and output paths.
 - Load and merge `.env.skill` files according to [Security And Isolation Policy](security-and-isolation-policy.md).
-- Capture raw backend events into an events artifact.
+- Capture normalized SDK result events into an events artifact.
 - Capture the final assistant message from SDK result data.
-- Preserve backend diagnostics, exit status where available, duration, and environment metadata.
+- Preserve SDK diagnostics, exit status where available, duration, and environment metadata.
 - Snapshot file changes after the run.
 - Run artifact-usage evaluations after the main run when configured, using the same model under test by default.
 - Apply suite-level security, network, approval, redaction, and cleanup policy.
@@ -38,7 +38,7 @@ The Codex Runner materializes isolated run directories, prepares project-local s
 
 - [Test Case Model](test-case-model.md)
 - [Workspace Fixture](workspace-scenario-set.md)
-- Suite-level defaults for Codex binary path, model list, sandbox mode, timeout, output directory, and security policy.
+- Suite-level defaults for model list, sandbox mode, timeout, output directory, and security policy.
 - Skill variant definitions from [Comparison Matrix](comparison-matrix.md).
 
 ### Output
@@ -54,7 +54,7 @@ The Codex Runner materializes isolated run directories, prepares project-local s
 - Each run must use a clean workspace directory.
 - When a scenario belongs to a [Workspace Fixture](workspace-scenario-set.md), each run must copy the fixture's `workspace/` directory into a fresh run workspace before Codex starts.
 - Each run should inherit the logged-in `CODEX_HOME` unless a suite explicitly requests an advanced isolated-auth mode.
-- Each skill-enabled run must place skill variants under the copied workspace, defaulting to `.agents/skills/<skill-name>/`.
+- Each skill-enabled run must place the selected root `skills` entry under the copied workspace, defaulting to `.agents/skills/<skill-name>/`.
 - Each no-skill control run must skip target skill materialization.
 - The runner must not mutate source fixtures, fixture workspaces, or canonical skill variant directories.
 - Timeouts must terminate the Codex process and mark the run as errored.
@@ -88,55 +88,29 @@ Rules:
 - Usage evaluations may mutate the generated workspace. The runner must capture usage-evaluation diffs separately from generation diffs.
 - Structured output parse failure is `usage_evaluation_failed`.
 
-## Execution Backend
+## SDK Execution
 
-The required backend is `sdk`, implemented through the Codex SDK from the Python runner. This avoids shelling out to `codex exec` for every attempt and gives the runner a structured integration point.
+Execution is implemented through the Codex SDK from the Python runner. The suite schema does not include a `codex` object.
 
-The SDK backend request must include:
+The SDK request must include:
 
 | Backend field | Source |
 | --- | --- |
 | `prompt` | Current test step prompt. |
 | `cwd` | Copied run workspace. |
 | `model` | Suite/model matrix selection. |
-| `sandbox` | Resolved `codex.sandbox`. |
+| `sandbox` | Resolved `security.sandbox`. |
 | `approvalPolicy` | Resolved `security.approval`. |
 | `config` | Resolved Codex config overrides, including network policy. |
 | `profile` | Optional Codex profile. |
 
 For multi-prompt test cases, the runner should keep a single SDK conversation for the case attempt when the SDK supports replies. Retry attempts must start a new conversation.
 
-The CLI backend remains an optional diagnostics backend. It is useful when comparing behavior against `codex exec --json` or investigating SDK event coverage, but it is not the default and is not required for normal suite execution.
-
 ## Skill Visibility Preflight
 
 Codex SDK skill discovery is assumed to work for project-local skills materialized under the configured skill root. The runner should still include a preflight check that records whether the selected skill appears in the SDK-visible prompt or session context before a run starts.
 
 For skill-enabled variants, missing skill visibility should be classified as a setup failure, not an assertion failure. For no-skill control variants, visible target skill evidence should be classified as a setup failure unless the variant explicitly allows ambient skills.
-
-## CLI Compatibility Command Assembly
-
-When using the CLI backend, the runner should map resolved security policy to Codex CLI flags before the `exec` subcommand:
-
-```bash
-codex -a "$APPROVAL" \
-  -c "sandbox_workspace_write.network_access=$NETWORK" \
-  exec --json \
-  --ephemeral \
-  --sandbox workspace-write \
-  --cd "$RUN_WORKSPACE" \
-  --output-last-message "$RESULT_FINAL" \
-  "$PROMPT" \
-  > "$RESULT_EVENTS"
-```
-
-Rules:
-
-- `security.approval` maps to the top-level `-a` flag, not an `exec` subcommand flag.
-- `security.network` maps to `-c sandbox_workspace_write.network_access=<true|false>` when the sandbox is `workspace-write`.
-- `--ephemeral` should be used by default so runs do not pollute persistent Codex thread history.
-- `--skip-git-repo-check` may be used for temporary run workspaces that are not Git repositories.
-- The implementation may add model, timeout, and additional `-c` settings, but must preserve JSONL stdout capture and final-message capture.
 
 ## File Change Capture
 
@@ -167,9 +141,9 @@ The runner must record at least:
 
 ## Dependencies
 
-- Local `codex` executable.
+- Python `openai-codex` SDK.
 - Filesystem copy and diff implementation.
-- JSONL parser for [Event Log Model](event-log-model.md).
+- JSON event parser for [Event Log Model](event-log-model.md).
 - Redaction helper for report previews and generated HTML.
 - Git is not required for file change detection.
 

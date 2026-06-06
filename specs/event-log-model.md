@@ -16,13 +16,13 @@ facts:
 
 ## Summary
 
-The event log model normalizes Codex backend output so assertions and reports can reason about skill instruction reads, skill scripts, skill references, assistant messages, token usage, errors, and run progress without hard-coding every raw event detail.
+The event log model normalizes Codex SDK output so assertions and reports can reason about skill instruction reads, skill scripts, skill references, assistant messages, token usage, errors, and run progress without hard-coding every raw event detail.
 
 ## Fields
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `rawEvents` | array | yes | Parsed JSON objects from the selected Codex backend, including `codex exec --json` events for CLI compatibility. |
+| `rawEvents` | array | yes | Parsed or normalized JSON objects from Codex SDK results and notifications. |
 | `assistantMessages` | array | yes | Assistant text messages found in events. |
 | `toolCalls` | array | yes | Tool invocations, including function name and arguments when available. |
 | `commands` | array | yes | Diagnostic shell command records. These are retained for debugging but are not primary assertion targets. |
@@ -52,7 +52,7 @@ The event log model normalizes Codex backend output so assertions and reports ca
 
 ## Derived Skill Events
 
-The evaluator must derive higher-level events from raw Codex backend events, SDK-visible skill context, and project-local skill metadata. Test cases should assert these derived skill events instead of matching raw shell commands.
+The evaluator must derive higher-level events from Codex SDK events, SDK-visible skill context, and project-local skill metadata. Test cases should assert these derived skill events instead of matching raw shell commands.
 
 | Derived Event | Source Evidence | Required Normalized Fields |
 | --- | --- | --- |
@@ -78,9 +78,9 @@ If parsing fails, the evaluator must keep `argv` empty or partial, set a parse d
 
 For `reference_accessed`, the normalizer should use source links declared in `SKILL.md` when available. A reference may be a file under `references/`, a path explicitly linked from `SKILL.md`, or another source file declared by the skill instructions. The normalized event must keep the resolved path and the originating source link so reports can show why the file counts as a skill reference.
 
-## Observed Codex CLI JSONL Events
+## Historical CLI Probe Events
 
-The current observed `codex exec --json` stream emits one JSON object per line. A no-tool run produced:
+Earlier CLI probes observed that `codex exec --json` emitted one JSON object per line. These examples are retained as compatibility evidence for the normalizer, but the runner now uses Codex SDK results as its execution source. A no-tool CLI probe produced:
 
 ```json
 {"type":"thread.started","thread_id":"019e76e6-77bd-72c1-be4d-3b11e3c5fa2a"}

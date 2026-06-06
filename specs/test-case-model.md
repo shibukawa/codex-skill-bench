@@ -57,7 +57,7 @@ When a case lives under `fixtures/<fixture-id>/cases/`, the default workspace is
 
 ## Prompt Rules
 
-- `prompt` is passed to the configured Codex execution backend. In the CLI backend it becomes the final argument to `codex exec`.
+- `prompt` is passed to the Codex SDK turn as the user input for the benchmark run.
 - The prompt may reference files created by the fixture.
 - The prompt may instruct Codex to use a skill by name or by path.
 - Prompt templates may interpolate run variables such as case ID, model, variant name, and workspace path.

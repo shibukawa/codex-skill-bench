@@ -21,7 +21,7 @@ Skill-enabled variants should be materialized into the run workspace as project-
 
 ## Decision
 
-The runner uses the real logged-in Codex home by default and places skill-enabled variants under the copied run workspace. The preferred materialization path is `.agents/skills/<skill-name>/`. The runner may also support `.codex/skills/<skill-name>/` because observed Codex prompt input includes skills from both project-local locations.
+The runner uses the real logged-in Codex home by default and places skill-enabled variants under the copied run workspace. The materialization path is `.agents/skills/<skill-name>/`. Suites define explicit source skills in the root `skills` array, and skill-enabled variants select one of those skills.
 
 ## Observed Behavior
 
@@ -44,8 +44,10 @@ This confirms that project-local skill discovery can be used without an isolated
 - The default runner must not change `CODEX_HOME`.
 - The runner must materialize the selected skill variant into the copied run workspace before invoking Codex.
 - The runner must skip materialization for `kind: control` variants.
-- The default project-local skill root is `.agents/skills`.
-- The runner should support `.codex/skills` as an explicit compatibility option.
+- The project-local skill root is `.agents/skills`.
+- The runner must read source skills from the root `skills` array. Each entry must be an explicit path or an object containing `path`.
+- A suite may define multiple root skills so variants can compare skill implementations.
+- A skill variant must select the configured root skill by `skill`, unless the suite defines exactly one skill.
 - The runner must ensure only the selected variant for a run is present under the project-local skill root unless the case intentionally tests multiple skills.
 - Result artifacts must record the materialized skill path, source path, and content hash.
 - Result artifacts for no-skill control variants must record that no target skill was materialized.
@@ -55,7 +57,7 @@ This confirms that project-local skill discovery can be used without an isolated
 
 - Authentication files from `CODEX_HOME` must not be copied into run directories.
 - Project-local skill directories created by the runner must be inside the copied run workspace.
-- Skill source paths must be validated so they cannot escape configured variant roots unexpectedly.
+- Skill source paths must be explicit and resolved relative to the suite file unless absolute.
 - Skill materialization must be cleaned by deleting the copied run workspace, not by mutating the source skill variant.
 
 ## Related Documents
@@ -66,4 +68,4 @@ This confirms that project-local skill discovery can be used without an isolated
 
 ## Native-Language Summary
 
-認証を壊さないため `CODEX_HOME` は差し替えず、skillありvariantではrunごとのコピー済みworkspace内に `.agents/skills/<skill>` として配置する。skillなしcontrol variantでは配置せず、対象skillが見えていないことをpreflightで確認する。
+認証を壊さないため `CODEX_HOME` は差し替えず、suite rootの `skills` 配列で明示したskillだけを、skillありvariantごとのコピー済みworkspace内の `.agents/skills` 配下へ配置する。skillなしcontrol variantでは配置せず、対象skillが見えていないことをpreflightで確認する。

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+from fnmatch import fnmatch
 from typing import Any
 
 import yaml
 
-from .models import CaseConfig, FixtureConfig, ModelConfig, SuiteConfig, VariantConfig
+from .models import CaseConfig, FixtureConfig, ModelConfig, SkillConfig, SuiteConfig, VariantConfig
 
 
 def load_suite(path: Path) -> tuple[SuiteConfig, list[FixtureConfig]]:
@@ -16,13 +17,14 @@ def load_suite(path: Path) -> tuple[SuiteConfig, list[FixtureConfig]]:
     fixtures_cfg = data.get("fixtures", {}) or {}
     fixtures_root = _resolve(base, fixtures_cfg.get("root", "fixtures"))
     case_glob = fixtures_cfg.get("caseGlob", "cases/*.yaml")
+    skills = [_parse_skill(base, item) for item in data.get("skills", [])]
+    skill_by_name = {skill.name: skill for skill in skills}
 
     models = [_parse_model(item) for item in data.get("models", [])]
     if not models:
         raise ValueError("suite must define at least one model")
 
-    variants = [_parse_variant(base, item) for item in data.get("variants", [{"name": "default"}])]
-    codex = data.get("codex", {}) or {}
+    variants = [_parse_variant(base, item, skills, skill_by_name) for item in data.get("variants", [{"name": "default"}])]
     security = data.get("security", {}) or {}
     runner = data.get("runner", {}) or {}
     defaults = data.get("defaults", {}) or {}
@@ -32,9 +34,9 @@ def load_suite(path: Path) -> tuple[SuiteConfig, list[FixtureConfig]]:
         name=str(data.get("name", path.stem)),
         fixtures_root=fixtures_root,
         case_glob=case_glob,
+        skills=skills,
         models=models,
         variants=variants,
-        codex=codex,
         security=security,
         runner=runner,
         defaults=defaults,
@@ -44,7 +46,6 @@ def load_suite(path: Path) -> tuple[SuiteConfig, list[FixtureConfig]]:
 
 
 def discover_fixtures(suite: SuiteConfig, fixtures_cfg: dict[str, Any]) -> list[FixtureConfig]:
-    include = set(fixtures_cfg.get("include", []) or [])
     exclude = set(fixtures_cfg.get("exclude", []) or [])
     if not suite.fixtures_root.exists():
         raise FileNotFoundError(f"fixtures root not found: {suite.fixtures_root}")
@@ -52,9 +53,7 @@ def discover_fixtures(suite: SuiteConfig, fixtures_cfg: dict[str, Any]) -> list[
     fixtures: list[FixtureConfig] = []
     for fixture_dir in sorted(p for p in suite.fixtures_root.iterdir() if p.is_dir()):
         fixture_id = fixture_dir.name
-        if include and fixture_id not in include:
-            continue
-        if fixture_id in exclude:
+        if any(fnmatch(fixture_id, pattern) for pattern in exclude):
             continue
 
         fixture_yaml = fixture_dir / "fixture.yaml"
@@ -77,20 +76,49 @@ def discover_fixtures(suite: SuiteConfig, fixtures_cfg: dict[str, Any]) -> list[
 def _parse_model(item: Any) -> ModelConfig:
     if isinstance(item, str):
         return ModelConfig(name=item)
-    if isinstance(item, dict) and "name" in item:
-        return ModelConfig(name=str(item["name"]), config=item.get("config", {}) or {})
-    raise ValueError(f"invalid model entry: {item!r}")
+    raise ValueError(f"models entries must be strings: {item!r}")
 
 
-def _parse_variant(base: Path, item: dict[str, Any]) -> VariantConfig:
+def _parse_skill(base: Path, item: Any) -> SkillConfig:
+    if isinstance(item, str):
+        path = _resolve(base, item)
+        return SkillConfig(name=path.name, path=path)
+    if isinstance(item, dict):
+        path = _resolve(base, item["path"])
+        return SkillConfig(
+            name=str(item.get("name", path.name)),
+            path=path,
+            materialize_as=item.get("materializeAs"),
+        )
+    raise ValueError(f"invalid skill entry: {item!r}")
+
+
+def _parse_variant(
+    base: Path,
+    item: dict[str, Any],
+    skills: list[SkillConfig],
+    skill_by_name: dict[str, SkillConfig],
+) -> VariantConfig:
     name = str(item["name"])
     kind = str(item.get("kind", "skill"))
-    skill_path = item.get("skillPath")
+    skill_name = item.get("skill")
+    selected_skill = None
+    if kind == "skill":
+        if skill_name is None and len(skills) == 1:
+            selected_skill = skills[0]
+            skill_name = selected_skill.name
+        elif skill_name is not None:
+            selected_skill = skill_by_name.get(str(skill_name))
+            if selected_skill is None:
+                raise ValueError(f"variant {name} references unknown skill: {skill_name}")
+        else:
+            raise ValueError(f"skill variant {name} requires skill or one configured suite skill")
     return VariantConfig(
         name=name,
         kind=kind,
-        skill_path=_resolve(base, skill_path) if skill_path else None,
-        materialize_as=item.get("materializeAs"),
+        skill_name=str(skill_name) if skill_name else None,
+        skill_path=selected_skill.path if selected_skill else None,
+        materialize_as=item.get("materializeAs") or (selected_skill.materialize_as if selected_skill else None),
         control_of=item.get("controlOf"),
         allow_ambient_skills=bool(item.get("allowAmbientSkills", False)),
     )
@@ -152,4 +180,3 @@ def _parse_duration_seconds(raw: Any) -> int | None:
     if text.endswith("m"):
         return int(text[:-1]) * 60
     return int(text)
-

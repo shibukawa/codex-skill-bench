@@ -54,30 +54,25 @@ This means the runner executes one attempt first, then retries only when the run
 Resolved stability configuration is built in this order:
 
 1. Suite-level `stability`.
-2. Model-level `models[*].stability`.
-3. Fixture-level `fixture.yaml` defaults or stability.
-4. Case-level `stability` or compatibility `attempts`.
-5. CLI overrides.
+2. Fixture-level `fixture.yaml` defaults or stability.
+3. Case-level `stability` or compatibility `attempts`.
+4. CLI overrides.
 
 Later values override earlier values. Maps are deep-merged and scalar fields replace earlier values.
 
-## Model Override Example
+## Model Matrix Example
 
 ```yaml
 models:
-  - name: gpt-5.5
-    stability:
-      maxAttempts: 3
-      passPolicy: any
+  - gpt-5.5
+  - gpt-5.5-high
 
-  - name: gpt-5.5
-    alias: gpt-5.5-high
-    config:
-      model_reasoning_effort: high
-    stability:
-      maxAttempts: 2
-      passPolicy: all
+stability:
+  maxAttempts: 3
+  passPolicy: any
 ```
+
+Model-specific stability and model config overrides are not part of the current suite schema because `models` is a string array. If needed later, they should be introduced as a separate keyed settings map instead of overloading `models`.
 
 ## Case Override Example
 
