@@ -3,6 +3,7 @@ name = "codex-skill-bench"
 version = "0.1.0"
 description = "Run Codex skill benchmark suites against workspace fixtures."
 requires-python = ">=3.11"
+license = "AGPL-3.0-or-later"
 dependencies = [
   "PyYAML>=6.0.2",
   "openai-codex>=0.1.0b2",
@@ -10,8 +11,11 @@ dependencies = [
 ]
 
 [project.scripts]
-codex-skill-bench = "codex_skill_bench.cli:main"
-eval = "codex_skill_bench.cli:main"
+csb = "codex_skill_bench.cli:main"
+eval = "codex_skill_bench.cli:eval_main"
+init = "codex_skill_bench.cli:init_main"
+add-fixture = "codex_skill_bench.cli:add_fixture_main"
+list = "codex_skill_bench.cli:list_main"
 
 [build-system]
 requires = ["hatchling"]

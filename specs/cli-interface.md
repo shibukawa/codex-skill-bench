@@ -16,20 +16,21 @@ facts:
 
 ## Summary
 
-`codex-skill-bench` is a local Python CLI for initializing benchmark suites, adding workspace fixtures, running suites, validating case definitions, rendering reports, and inspecting previous results. The documented end-user invocation is installation-free through `uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval ...`.
+Codex Skill Bench exposes small console scripts for initializing benchmark suites, adding workspace fixtures, evaluating suites, validating case definitions, rendering reports, and inspecting previous results. The documented end-user invocation is installation-free through `uvx --from git+https://github.com/shibukawa/codex-skill-bench.git <command> ...`.
 
 ## Endpoints / Operations
 
 | Command | Purpose |
 | --- | --- |
-| `eval init [skill-path]` | Initialize `suite.yaml`, `fixtures/`, and `fixtures/README.md` in the current directory. |
-| `eval add-fixture [name] [target-path] [prompt]` | Create a fixture workspace snapshot and append a prompt case to `fixture.yaml`. |
-| `codex-skill-bench run <suite.yaml>` | Execute selected test cases and write results. |
-| `codex-skill-bench validate <suite.yaml>` | Validate suite and test case definitions without executing Codex. |
-| `codex-skill-bench report <results-dir>` | Render or re-render HTML and aggregate YAML from existing results. |
-| `codex-skill-bench list <suite.yaml>` | List cases, models, variants, and assertion counts. |
-| `codex-skill-bench discover <suite.yaml>` | Discover `fixtures/<fixture-id>/` workspaces and case YAML files. |
-| `codex-skill-bench clean <suite.yaml>` | Remove run workspaces and temporary files according to cleanup filters. |
+| `init [skill-path]` | Initialize `suite.yaml`, `fixtures/`, and `fixtures/README.md` in the current directory. |
+| `add-fixture [name] [target-path] [prompt]` | Create a fixture workspace snapshot and append a prompt case to `fixture.yaml`. |
+| `eval <suite.yaml>` | Execute selected test cases and write results. |
+| `list <suite.yaml>` | List cases, models, variants, and assertion counts. |
+| `csb run <suite.yaml>` | Compatibility alias for `eval <suite.yaml>` through the grouped CLI entrypoint. |
+| `csb validate <suite.yaml>` | Validate suite and test case definitions without executing Codex. |
+| `csb report <results-dir>` | Render or re-render HTML and aggregate YAML from existing results. |
+| `csb discover <suite.yaml>` | Discover `fixtures/<fixture-id>/` workspaces and case YAML files. |
+| `csb clean <suite.yaml>` | Remove run workspaces and temporary files according to cleanup filters. |
 
 ## Request / Input
 
@@ -71,6 +72,8 @@ Common flags:
 | `target-path` | no | Directory to snapshot into `fixtures/<name>/workspace/`. |
 | `prompt` | no | Prompt text to write into the generated test case. |
 
+`eval` is the primary test-case evaluation command. `csb run` is retained as a compatibility alias.
+
 `add-fixture` behavior:
 
 - If any required argument is omitted, open an interactive TUI wizard for missing values.
@@ -108,4 +111,4 @@ Common flags:
 
 ## Native-Language Summary
 
-Python製CLIとして、run、validate、report、list を提供し、case/model/variant/filter/結果出力先などをflagで指定できる。
+Python製CLIとして、init、add-fixture、eval、list と、短い統合entrypoint `csb` を提供する。利用者はインストールせず `uvx --from git+https://github.com/shibukawa/codex-skill-bench.git init ...` のように直接実行し、`eval` はテストケース評価実行、`csb run` は互換aliasとして扱う。

@@ -13,16 +13,14 @@ from .suite_loader import load_suite
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog="csb")
     sub = parser.add_subparsers(dest="command", required=True)
 
     run_parser = sub.add_parser("run", help="Run a benchmark suite")
-    run_parser.add_argument("suite", type=Path)
-    run_parser.add_argument("--results", type=Path, default=None)
-    run_parser.add_argument("--model", default=None)
-    run_parser.add_argument("--variant", default=None)
-    run_parser.add_argument("--case", default=None)
-    run_parser.add_argument("--fixture", default=None)
+    _add_run_arguments(run_parser)
+
+    eval_parser = sub.add_parser("eval", help="Evaluate a benchmark suite")
+    _add_run_arguments(eval_parser)
 
     list_parser = sub.add_parser("list", help="List resolved runs")
     list_parser.add_argument("suite", type=Path)
@@ -36,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     fixture_parser.add_argument("prompt", nargs="?")
 
     args = parser.parse_args(argv)
-    if args.command == "run":
+    if args.command in {"run", "eval"}:
         return run_suite(args)
     if args.command == "list":
         return list_suite(args)
@@ -48,6 +46,32 @@ def main(argv: list[str] | None = None) -> int:
     return 2
 
 
+def eval_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="eval")
+    _add_run_arguments(parser)
+    return run_suite(parser.parse_args(argv))
+
+
+def init_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="init")
+    parser.add_argument("skill_path", type=Path, nargs="?")
+    return init_suite(parser.parse_args(argv))
+
+
+def add_fixture_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="add-fixture")
+    parser.add_argument("name", nargs="?")
+    parser.add_argument("target_path", type=Path, nargs="?")
+    parser.add_argument("prompt", nargs="?")
+    return add_fixture(parser.parse_args(argv))
+
+
+def list_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="list")
+    parser.add_argument("suite", type=Path)
+    return list_suite(parser.parse_args(argv))
+
+
 def run_suite(args: argparse.Namespace) -> int:
     suite, fixtures = load_suite(args.suite)
     specs = select_runs(suite, fixtures, args)
@@ -57,6 +81,15 @@ def run_suite(args: argparse.Namespace) -> int:
     print(f"wrote {results_dir / 'summary.yaml'}")
     print(f"runs: {sum(len(v['variants']) for f in summary['fixtures'].values() for c in f['cases'].values() for v in c['models'].values())}")
     return 0
+
+
+def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("suite", type=Path)
+    parser.add_argument("--results", type=Path, default=None)
+    parser.add_argument("--model", default=None)
+    parser.add_argument("--variant", default=None)
+    parser.add_argument("--case", default=None)
+    parser.add_argument("--fixture", default=None)
 
 
 def list_suite(args: argparse.Namespace) -> int:
@@ -203,7 +236,7 @@ This directory contains reusable workspace snapshots for `eval` benchmark runs.
 Initialize a suite without installing the package:
 
 ```bash
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval init [skill-path]
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git init [skill-path]
 ```
 
 If `skill-path` is omitted, `init` starts an interactive wizard and creates `suite.yaml`, `fixtures/`, and this README.
@@ -211,7 +244,7 @@ If `skill-path` is omitted, `init` starts an interactive wizard and creates `sui
 Add a fixture from a workspace snapshot:
 
 ```bash
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval add-fixture [name] [target-path] [prompt]
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git add-fixture [name] [target-path] [prompt]
 ```
 
 If arguments are omitted, `add-fixture` starts an interactive wizard. It creates `fixtures/<name>/workspace/` from the target path and appends a test case to `fixtures/<name>/fixture.yaml` with `prompt: <prompt>`.
@@ -219,8 +252,8 @@ If arguments are omitted, `add-fixture` starts an interactive wizard. It creates
 Run or list the suite:
 
 ```bash
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval list suite.yaml
-uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval run suite.yaml --results results
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git list suite.yaml
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval suite.yaml --results results
 ```
 
 ## suite.yaml
