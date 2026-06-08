@@ -67,6 +67,8 @@ Options:
 - `--fixture <text>`: run fixtures whose id contains the text.
 - `--case <text>`: run cases whose id contains the text.
 
+`eval` writes progress to stderr as it loads the suite, selects runs, prepares each workspace, preloads skills, starts Codex, finishes runs, and writes the summary. If interrupted with Ctrl-C, it exits with code `130` without printing a Python traceback.
+
 Use model name `default` to omit the SDK `model` argument and let Codex choose its configured default model.
 
 ## Fixture Layout

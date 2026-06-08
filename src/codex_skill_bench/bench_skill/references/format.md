@@ -72,6 +72,8 @@ report:
 
 When the current directory contains `suite.yaml`, the suite path can be omitted for `list`, `eval`, `csb list`, `csb eval`, and `csb run`.
 
+`eval` writes progress to stderr while loading the suite, selecting runs, preparing workspaces, preloading skills, starting Codex, finishing runs, and writing the summary. Ctrl-C exits with code `130` without a Python traceback.
+
 ### skills Entries
 
 String form:

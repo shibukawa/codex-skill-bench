@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import yaml
 
@@ -35,21 +35,33 @@ class RunResult:
 
 
 class BenchRunner:
-    def __init__(self, results_dir: Path):
+    def __init__(self, results_dir: Path, status: Callable[[str], None] | None = None):
         self.results_dir = results_dir.resolve()
         self.runs_dir = self.results_dir / "runs"
+        self.status = status
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self.runs_dir.mkdir(parents=True, exist_ok=True)
 
     def run(self, specs: list[RunSpec]) -> dict[str, Any]:
-        results = [self.run_one(spec) for spec in specs]
+        results: list[RunResult] = []
+        total = len(specs)
+        if total == 0:
+            self._status("no runs selected")
+        for index, spec in enumerate(specs, start=1):
+            self._status(f"[{index}/{total}] start {spec.run_id}")
+            result = self.run_one(spec)
+            results.append(result)
+            self._status(f"[{index}/{total}] {result.status} {spec.run_id} ({result.duration_ms}ms)")
         summary = build_summary(results)
         summary_path = self.results_dir / "summary.yaml"
+        self._status(f"writing summary: {summary_path}")
         with summary_path.open("w", encoding="utf-8") as f:
             yaml.safe_dump(summary, f, sort_keys=False, allow_unicode=True)
+        self._status(f"wrote summary: {summary_path}")
         return summary
 
     def run_one(self, spec: RunSpec) -> RunResult:
+        self._status(f"{spec.run_id}: preparing workspace")
         run_root = self.runs_dir / spec.run_id
         workspace = run_root / "workspace"
         if run_root.exists():
@@ -58,6 +70,8 @@ class BenchRunner:
         shutil.copytree(spec.fixture.workspace, workspace)
 
         materialized = self._materialize_variant(spec.variant, workspace, PROJECT_SKILL_ROOT)
+        if materialized:
+            self._status(f"{spec.run_id}: materialized skill {materialized}")
         prompt = resolve_prompt(spec.case, spec.variant)
 
         events_path = run_root / "events.jsonl"
@@ -73,6 +87,7 @@ class BenchRunner:
         preload: dict[str, Any] | None = None
         try:
             if should_preload_skill(spec):
+                self._status(f"{spec.run_id}: preloading skill {skill_name(spec)}")
                 preload = self._run_skill_preload(
                     spec,
                     workspace,
@@ -80,11 +95,14 @@ class BenchRunner:
                     preload_final_path,
                     preload_stderr_path,
                 )
+                self._status(f"{spec.run_id}: preload {preload['status']} ({preload['durationMs']}ms)")
             started = time.monotonic()
+            self._status(f"{spec.run_id}: running Codex")
             exit_code = self._run_codex(spec, workspace, prompt, events_path, final_path, stderr_path)
             if exit_code == 0 and should_require_skill_activation(spec) and not skill_was_activated(events_path, spec):
                 exit_code = 1
                 error = f"skill was not activated: {skill_name(spec)}"
+                self._status(f"{spec.run_id}: {error}")
             status = "passed" if exit_code == 0 else "errored"
         except Exception as exc:  # keep per-run artifacts even on runner errors
             status = "errored"
@@ -122,6 +140,10 @@ class BenchRunner:
         )
         write_result(result_path, result)
         return result
+
+    def _status(self, message: str) -> None:
+        if self.status is not None:
+            self.status(message)
 
     def _materialize_variant(self, variant: VariantConfig, workspace: Path, skill_root: str) -> Path | None:
         if variant.kind == "control":

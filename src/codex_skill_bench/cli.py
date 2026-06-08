@@ -75,10 +75,14 @@ def list_main(argv: list[str] | None = None) -> int:
 
 
 def run_suite(args: argparse.Namespace) -> int:
-    suite, fixtures = load_suite(_resolve_suite_argument(args))
+    suite_path = _resolve_suite_argument(args)
+    _status(f"loading suite: {suite_path}")
+    suite, fixtures = load_suite(suite_path)
     specs = select_runs(suite, fixtures, args)
+    _status(f"selected runs: {len(specs)}")
     results_dir = _resolve_results_dir(args, suite)
-    runner = BenchRunner(results_dir)
+    _status(f"results dir: {results_dir}")
+    runner = BenchRunner(results_dir, status=_status)
     summary = runner.run(specs)
     print(f"wrote {results_dir / 'summary.yaml'}")
     print(f"runs: {sum(len(v['variants']) for f in summary['fixtures'].values() for c in f['cases'].values() for v in c['models'].values())}")
@@ -133,6 +137,9 @@ def _resolve_results_dir(args: argparse.Namespace, suite) -> Path:
 def _handle_validation_errors(callback) -> int:
     try:
         return callback()
+    except KeyboardInterrupt:
+        print("\nerror: interrupted by user", file=sys.stderr, flush=True)
+        return 130
     except SuiteValidationError as exc:
         _print_validation_errors(exc)
         return 2
@@ -142,6 +149,10 @@ def _print_validation_errors(exc: SuiteValidationError) -> None:
     print("error: invalid suite configuration", file=sys.stderr)
     for issue in exc.issues:
         print(f"- {issue.path}: {issue.message}", file=sys.stderr)
+
+
+def _status(message: str) -> None:
+    print(f"[codex-skill-bench] {message}", file=sys.stderr, flush=True)
 
 
 def init_suite(args: argparse.Namespace) -> int:

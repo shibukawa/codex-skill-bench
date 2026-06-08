@@ -75,6 +75,8 @@ Common flags:
 
 `eval` is the primary test-case evaluation command. `csb run` is retained as a compatibility alias.
 
+When the current working directory contains `suite.yaml`, `eval`, `list`, `csb eval`, `csb run`, and `csb list` may omit the suite path and use `./suite.yaml`.
+
 `add-fixture` behavior:
 
 - If any required argument is omitted, open an interactive TUI wizard for missing values.
@@ -86,9 +88,13 @@ Common flags:
 ## Response / Output
 
 - Human-readable command progress on stderr.
+- `eval` progress must include suite loading, selected run count, results directory, each run start, preload start/end for skill variants, Codex execution start, each run completion status, and summary write completion.
+- Progress lines must flush promptly so long-running Codex SDK calls are visible before they block.
+- Machine-readable run artifacts and summaries remain on disk; stdout stays reserved for concise command results such as listed run IDs and final summary pointers.
 - YAML and HTML artifacts under the configured results directory.
 - Process exit code `0` when all required selected runs pass.
 - Non-zero process exit code when validation fails, any required run fails, or runner errors occur.
+- A user interrupt such as Ctrl-C must print a concise interrupted message, avoid a Python traceback, and exit with code `130`.
 
 ## Errors
 

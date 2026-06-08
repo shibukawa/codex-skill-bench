@@ -58,6 +58,9 @@ The Codex Runner materializes isolated run directories, prepares project-local s
 - Each no-skill control run must skip target skill materialization.
 - The runner must not mutate source fixtures, fixture workspaces, or canonical skill variant directories.
 - Timeouts must terminate the Codex process and mark the run as errored.
+- The runner must emit human-readable progress events to the CLI before long-running phases: workspace preparation, skill materialization, skill preload start/end, main Codex run start, run completion, and summary write completion.
+- Progress events must identify the run ID and, when running a batch, the current run index and total selected runs.
+- Progress output is diagnostic and must go to stderr through the CLI layer, not to result artifacts or stdout run listings.
 - Non-zero Codex exit code does not automatically fail every assertion; it is exposed as an assertion target.
 - Environment variables passed to Codex must follow the configured policy from [Security And Isolation Policy](security-and-isolation-policy.md).
 - `.env.skill` values must be merged before env allow/deny and redaction rules are applied.

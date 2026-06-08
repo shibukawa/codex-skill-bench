@@ -84,6 +84,45 @@ def test_eval_alias_runs_with_fake_sdk(tmp_path: Path, monkeypatch) -> None:
     assert (results / "summary.yaml").exists()
 
 
+def test_eval_prints_progress_to_stderr(tmp_path: Path, monkeypatch, capsys) -> None:
+    def fake_preload(self, spec, workspace, events_path, final_path, stderr_path):
+        final_path.write_text("preloaded", encoding="utf-8")
+        events_path.write_text(json.dumps({"type": "turn.completed", "usage": {"inputTokens": 5, "outputTokens": 1}}), encoding="utf-8")
+        return {"status": "completed", "durationMs": 10, "usage": read_usage(events_path), "artifacts": {}}
+
+    def fake_run(self, spec, workspace, prompt, events_path, final_path, stderr_path):
+        final_path.write_text("done", encoding="utf-8")
+        events_path.write_text(json.dumps({"type": "turn.completed", "usage": {"inputTokens": 100, "outputTokens": 12}}), encoding="utf-8")
+        return 0
+
+    monkeypatch.setattr(BenchRunner, "_run_skill_preload", fake_preload)
+    monkeypatch.setattr(BenchRunner, "_run_codex_sdk", fake_run)
+    results = tmp_path / "results"
+
+    assert main(["eval", "examples/basic-suite/suite.yaml", "--results", str(results)]) == 0
+
+    captured = capsys.readouterr()
+    assert "[codex-skill-bench] loading suite:" in captured.err
+    assert "[codex-skill-bench] selected runs: 2" in captured.err
+    assert "[codex-skill-bench] [1/2] start simple-python__add-license-header__default__with-skill__attempt-1" in captured.err
+    assert "preloading skill license-header" in captured.err
+    assert "running Codex" in captured.err
+    assert "wrote summary:" in captured.err
+
+
+def test_keyboard_interrupt_is_clean_error(monkeypatch, capsys) -> None:
+    def fake_run(self, specs):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(BenchRunner, "run", fake_run)
+
+    assert main(["eval", "examples/basic-suite/suite.yaml"]) == 130
+
+    captured = capsys.readouterr()
+    assert "error: interrupted by user" in captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_eval_main_uses_current_directory_suite(tmp_path: Path, monkeypatch) -> None:
     def fake_preload(self, spec, workspace, events_path, final_path, stderr_path):
         final_path.write_text("preloaded", encoding="utf-8")

@@ -67,6 +67,8 @@ uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval <suite.ya
 - `--fixture <text>`: idに指定文字列を含むfixtureだけを実行。
 - `--case <text>`: idに指定文字列を含むcaseだけを実行。
 
+`eval` はsuite読み込み、run選択、workspace準備、skill preload、Codex開始、run終了、summary書き込みの進捗をstderrに出力します。Ctrl-Cで中断した場合はPython tracebackを出さず、終了コード `130` で終了します。
+
 モデル名に `default` を指定すると、SDKの `model` 引数を渡さず、Codex側の既定モデルを使います。
 
 ## Fixture構成
