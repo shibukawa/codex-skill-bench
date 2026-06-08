@@ -35,6 +35,13 @@ class RunResult:
     error: str | None = None
 
 
+@dataclass
+class StreamTurnResult:
+    status: str
+    duration_ms: int | None
+    final_response: str | None
+
+
 class BenchRunner:
     def __init__(self, results_dir: Path, status: Callable[[str], None] | None = None):
         self.results_dir = results_dir.resolve()
@@ -195,14 +202,14 @@ class BenchRunner:
                         model=model,
                         sandbox=sandbox,
                     )
-                    result = thread.run(prompt, cwd=str(workspace), model=model, sandbox=sandbox)
+                    turn = thread.turn(prompt, cwd=str(workspace), model=model, sandbox=sandbox)
+                    result = collect_streamed_turn(turn, events, turn_id=turn.id)
             except Exception as exc:
                 stderr.write(str(exc))
                 raise
 
             final_path.write_text(result.final_response or "", encoding="utf-8")
-            events.write(json.dumps(sdk_result_event(result), ensure_ascii=False) + "\n")
-            return 0 if sdk_status_value(result.status) == "completed" else 1
+            return 0 if result.status == "completed" else 1
 
     def _run_skill_preload(
         self,
@@ -237,21 +244,21 @@ class BenchRunner:
                         model=model,
                         sandbox=sandbox,
                     )
-                    result = thread.run(
+                    turn = thread.turn(
                         [SkillInput(name=name, path=str(skill_path)), TextInput(prompt)],
                         cwd=str(workspace),
                         model=model,
                         sandbox=sandbox,
                     )
+                    result = collect_streamed_turn(turn, events, turn_id=turn.id)
             except Exception as exc:
                 stderr.write(str(exc))
                 raise
             duration_ms = int((time.monotonic() - started) * 1000)
             final_path.write_text(result.final_response or "", encoding="utf-8")
-            events.write(json.dumps(sdk_result_event(result), ensure_ascii=False) + "\n")
 
         return {
-            "status": sdk_status_value(result.status),
+            "status": result.status,
             "durationMs": duration_ms,
             "usage": read_usage(events_path),
             "artifacts": {
@@ -280,11 +287,9 @@ def read_usage(events_path: Path) -> dict[str, int]:
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            usage = event.get("usage")
+            usage = usage_from_event(event)
             if not isinstance(usage, dict):
                 continue
-            if "total" in usage and isinstance(usage["total"], dict):
-                usage = usage["total"]
             total["inputTokens"] += int(usage.get("input_tokens", 0) or 0)
             total["inputTokens"] += int(usage.get("inputTokens", 0) or 0)
             total["cachedInputTokens"] += int(usage.get("cached_input_tokens", 0) or 0)
@@ -302,16 +307,83 @@ def read_usage(events_path: Path) -> dict[str, int]:
     return total
 
 
-def sdk_result_event(result: Any) -> dict[str, Any]:
+def collect_streamed_turn(turn: Any, events_file: Any, *, turn_id: str) -> StreamTurnResult:
+    completed_turn: dict[str, Any] | None = None
+    items: list[dict[str, Any]] = []
+    stream = turn.stream()
+    try:
+        for notification in stream:
+            event = notification_to_dict(notification)
+            events_file.write(json.dumps(event, ensure_ascii=False) + "\n")
+            events_file.flush()
+            payload = event.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            if event.get("method") == "item/completed" and payload.get("turnId") == turn_id:
+                item = payload.get("item")
+                if isinstance(item, dict):
+                    items.append(item)
+                continue
+            if event.get("method") == "turn/completed":
+                turn_payload = payload.get("turn")
+                if isinstance(turn_payload, dict) and turn_payload.get("id") == turn_id:
+                    completed_turn = turn_payload
+    finally:
+        stream.close()
+
+    if completed_turn is None:
+        raise RuntimeError("turn completed event not received")
+    status = sdk_status_value(completed_turn.get("status"))
+    if status == "failed":
+        error = completed_turn.get("error")
+        if isinstance(error, dict) and error.get("message"):
+            raise RuntimeError(str(error["message"]))
+        raise RuntimeError("turn failed with status failed")
+    return StreamTurnResult(
+        status=status,
+        duration_ms=completed_turn.get("durationMs") or completed_turn.get("duration_ms"),
+        final_response=final_assistant_response_from_items(items),
+    )
+
+
+def notification_to_dict(notification: Any) -> dict[str, Any]:
     return {
-        "type": "turn.completed",
-        "turn_id": result.id,
-        "status": sdk_status_value(result.status),
-        "duration_ms": result.duration_ms,
-        "final_response": result.final_response,
-        "usage": sdk_usage_to_dict(result.usage),
-        "items": [sdk_model_to_dict(item) for item in result.items],
+        "method": getattr(notification, "method", ""),
+        "payload": sdk_model_to_dict(getattr(notification, "payload", None)),
     }
+
+
+def final_assistant_response_from_items(items: list[dict[str, Any]]) -> str | None:
+    last_unknown_phase_response: str | None = None
+    for item in reversed(items):
+        if item.get("type") != "agentMessage":
+            continue
+        text = item.get("text")
+        if not isinstance(text, str):
+            continue
+        phase = item.get("phase")
+        if phase == "final_answer":
+            return text
+        if phase is None and last_unknown_phase_response is None:
+            last_unknown_phase_response = text
+    return last_unknown_phase_response
+
+
+def usage_from_event(event: dict[str, Any]) -> dict[str, Any] | None:
+    usage = event.get("usage")
+    if isinstance(usage, dict):
+        if "total" in usage and isinstance(usage["total"], dict):
+            return usage["total"]
+        return usage
+    if event.get("method") == "thread/tokenUsage/updated":
+        payload = event.get("payload")
+        if isinstance(payload, dict):
+            token_usage = payload.get("tokenUsage") or payload.get("token_usage")
+            if isinstance(token_usage, dict):
+                if "total" in token_usage and isinstance(token_usage["total"], dict):
+                    return token_usage["total"]
+                return token_usage
+    return None
 
 
 def sdk_usage_to_dict(usage: Any) -> dict[str, Any] | None:

@@ -337,3 +337,54 @@ def test_read_sdk_usage_and_skill_activation(tmp_path: Path) -> None:
     )
     assert read_usage(events)["totalTokens"] == 13
     assert skill_was_activated(events, spec)
+
+
+def test_read_stream_notification_usage_and_skill_activation(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    events.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "method": "thread/tokenUsage/updated",
+                        "payload": {
+                            "turnId": "turn-1",
+                            "tokenUsage": {
+                                "total": {
+                                    "inputTokens": 20,
+                                    "cachedInputTokens": 4,
+                                    "outputTokens": 5,
+                                    "reasoningOutputTokens": 1,
+                                    "totalTokens": 25,
+                                }
+                            },
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "method": "item/completed",
+                        "payload": {
+                            "turnId": "turn-1",
+                            "item": {
+                                "type": "commandExecution",
+                                "command": "sed -n '1,80p' .agents/skills/license-header/SKILL.md",
+                            },
+                        },
+                    }
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    suite, fixtures = load_suite(Path("examples/basic-suite/suite.yaml"))
+    spec = RunSpec(
+        suite=suite,
+        fixture=fixtures[0],
+        case=fixtures[0].cases[0],
+        model=suite.models[0],
+        variant=suite.variants[0],
+    )
+    assert read_usage(events)["totalTokens"] == 25
+    assert read_usage(events)["inputTokens"] == 20
+    assert skill_was_activated(events, spec)

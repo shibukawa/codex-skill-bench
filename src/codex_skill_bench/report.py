@@ -184,6 +184,9 @@ def read_event_items(raw_path: str | None) -> list[dict[str, Any]]:
 
 
 def flatten_event(line_no: int, event: dict[str, Any]) -> list[dict[str, Any]]:
+    payload = event.get("payload")
+    if isinstance(payload, dict) and isinstance(payload.get("item"), dict):
+        return [event_item(line_no, event), event_item(line_no, payload["item"], index=1)]
     flattened = [event_item(line_no, event)]
     for index, item in enumerate(event.get("items") or [], start=1):
         if isinstance(item, dict):
@@ -192,7 +195,7 @@ def flatten_event(line_no: int, event: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def event_item(line_no: int, event: dict[str, Any], index: int | None = None) -> dict[str, Any]:
-    event_type = str(event.get("type") or "event")
+    event_type = str(event.get("type") or event.get("method") or "event")
     summary = event_summary(event)
     return {
         "line": line_no,
@@ -206,6 +209,15 @@ def event_item(line_no: int, event: dict[str, Any], index: int | None = None) ->
 
 
 def event_summary(event: dict[str, Any]) -> str:
+    payload = event.get("payload")
+    if isinstance(payload, dict):
+        if isinstance(payload.get("item"), dict):
+            return event_summary(payload["item"])
+        if isinstance(payload.get("turn"), dict):
+            turn = payload["turn"]
+            return compact_text(f"turn {turn.get('status', 'unknown')} {turn.get('id', '')}")
+        if isinstance(payload.get("tokenUsage"), dict):
+            return "usage: " + compact_text(json.dumps(payload["tokenUsage"], ensure_ascii=False))
     for key in ("final_response", "text", "aggregatedOutput", "command"):
         value = event.get(key)
         if isinstance(value, str) and value.strip():
