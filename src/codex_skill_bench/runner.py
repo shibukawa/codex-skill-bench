@@ -11,6 +11,7 @@ from typing import Any, Callable
 import yaml
 
 from .models import RunSpec, VariantConfig
+from .report import write_html_report
 from .suite_loader import resolve_prompt
 
 
@@ -58,6 +59,8 @@ class BenchRunner:
         with summary_path.open("w", encoding="utf-8") as f:
             yaml.safe_dump(summary, f, sort_keys=False, allow_unicode=True)
         self._status(f"wrote summary: {summary_path}")
+        report_path = write_html_report(self.results_dir, summary)
+        self._status(f"wrote report: {report_path}")
         return summary
 
     def run_one(self, spec: RunSpec) -> RunResult:

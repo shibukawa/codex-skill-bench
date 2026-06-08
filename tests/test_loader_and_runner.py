@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from codex_skill_bench.cli import eval_main, list_main, main
@@ -55,11 +56,31 @@ def test_run_with_fake_sdk(tmp_path: Path, monkeypatch) -> None:
     assert main(["run", "examples/basic-suite/suite.yaml", "--results", str(results)]) == 0
     summary = results / "summary.yaml"
     assert summary.exists()
+    report = results / "report.html"
+    assert report.exists()
     text = summary.read_text()
     assert "with-skill" in text
     assert "no-skill" in text
     assert "preload" in text
     assert "generationTokenDelta" in text
+    html = report.read_text(encoding="utf-8")
+    assert "Skill Bench Report" in html
+    assert "simple-python" in html
+    assert "comparisonImprovements" in html
+    assert "Repeated time improvement" in html
+    assert "Open workspace" in html
+    assert "summary.yaml" in html
+    assert "&amp;id" not in html
+    assert '"href": "runs/' in html
+    match = re.search(r'<script id="report-data" type="application/json">(.*?)</script>', html, re.S)
+    assert match
+    report_data = json.loads(match.group(1))
+    case = report_data["cases"][0]
+    assert case["comparisonImprovements"][0]["baselineVariant"] == "no-skill"
+    assert case["comparisonImprovements"][0]["skillVariant"] == "with-skill"
+    assert case["comparisonImprovements"][0]["preloadDurationMs"] == 10
+    assert case["comparisonImprovements"][0]["preloadTokens"] == 6
+    assert case["variants"]["with-skill"]["attempts"][0]["eventItems"]
 
 
 def test_eval_alias_runs_with_fake_sdk(tmp_path: Path, monkeypatch) -> None:
@@ -82,6 +103,7 @@ def test_eval_alias_runs_with_fake_sdk(tmp_path: Path, monkeypatch) -> None:
     results = tmp_path / "results"
     assert main(["eval", "examples/basic-suite/suite.yaml", "--results", str(results)]) == 0
     assert (results / "summary.yaml").exists()
+    assert (results / "report.html").exists()
 
 
 def test_eval_prints_progress_to_stderr(tmp_path: Path, monkeypatch, capsys) -> None:
@@ -108,6 +130,7 @@ def test_eval_prints_progress_to_stderr(tmp_path: Path, monkeypatch, capsys) -> 
     assert "preloading skill license-header" in captured.err
     assert "running Codex" in captured.err
     assert "wrote summary:" in captured.err
+    assert "wrote report:" in captured.err
 
 
 def test_keyboard_interrupt_is_clean_error(monkeypatch, capsys) -> None:
@@ -142,6 +165,7 @@ def test_eval_main_uses_current_directory_suite(tmp_path: Path, monkeypatch) -> 
     assert eval_main(["--results", str(results)]) == 0
 
     assert (results / "summary.yaml").exists()
+    assert (results / "report.html").exists()
 
 
 def test_list_main_uses_current_directory_suite(monkeypatch, capsys) -> None:

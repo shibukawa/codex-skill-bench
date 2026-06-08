@@ -10,7 +10,7 @@ tags:
   - "html"
   - "yaml"
 facts:
-  lifecycle.status: "blueprint"
+  lifecycle.status: "mvp"
   owner: "tooling"
 ---
 
@@ -20,12 +20,16 @@ facts:
 
 The Report Generator writes normalized YAML results and renders an HTML report for humans to inspect suite outcomes, failures, artifacts, and comparisons.
 
+The MVP report is a single static `report.html` file generated beside `summary.yaml`. It embeds the current summary data, selected intermediate artifacts, and pure JavaScript needed for local navigation, so the report can be opened as a standalone CI artifact without a web server.
+
 ## Responsibilities
 
 - Write one normalized YAML result file per run.
 - Write an aggregate YAML summary for the suite.
 - Render an HTML report from aggregate results.
+- Embed a normalized report data payload inside `report.html`.
 - Link to raw JSONL events, final messages, stderr logs, diffs, usage-evaluation artifacts, and LLM judge artifacts.
+- Preview useful intermediate artifacts inline, including `summary.yaml`, per-run result YAML, final messages, stderr logs, and bounded event-log previews.
 - Highlight failures, errored runs, skipped assertions, and missing telemetry.
 - Apply configured artifact redaction to report previews and HTML.
 
@@ -100,6 +104,57 @@ Rules:
 - Usage-evaluation workspace mutations should be reported separately from generation diffs.
 - HTML reports may render this hierarchy as tables, trees, or matrices, but machine-readable YAML should preserve it.
 
+## MVP Single-HTML Report
+
+The first implemented HTML report must be generated as `results/report.html` after `results/summary.yaml` is written. It must not require external CSS, external JavaScript, a build step, or a server. The page may link to raw artifact files by relative path when they are under the result directory.
+
+The embedded data payload must include:
+
+| Field | Notes |
+| --- | --- |
+| `schemaVersion` | Version for the report payload, starting at `1`. |
+| `summary` | Case counts, status counts, and comparison counts. |
+| `cases[]` | Flattened fixture/case/model records for list navigation. |
+| `cases[].variants` | Variant aggregates, attempts, token usage, durations, preload data, artifact links, and artifact previews. |
+| `cases[].comparisons` | Skill/control comparison rows matching the fixture, case, and model. |
+| `raw.summaryYaml` | Original aggregate YAML as text for direct inspection. |
+| `raw.summaryJson` | Parsed aggregate data for client-side rendering and future export. |
+
+The client-side UI must be pure JavaScript and render from the embedded payload. The default layout is:
+
+- A left sidebar with a searchable test-case list.
+- Each list item must show fixture, case, model, and OK/NG-style status at a glance.
+- Clicking a list item must replace the detail pane without reloading the page.
+- The detail pane must show variant status, generation duration, estimated repeat duration, token usage, preload cost, and no-skill baseline improvement deltas.
+- Skill comparison rows must use `no-skill` as the baseline whenever that variant exists, even when multiple skill variants are evaluated in the same fixture/case/model group.
+- The primary comparison metric is repeated-run improvement: `no-skill.estimatedRepeatDurationMs - skill.estimatedRepeatDurationMs`. Positive values mean the skill improved repeated-run time.
+- Token improvement is `no-skill.usage.totalTokens - skill.usage.totalTokens`. Positive values mean the skill saved generation tokens.
+- Preload duration and preload tokens must be shown in parentheses beside repeated-run and token improvements because they are one-time additional costs.
+- Clicking a variant or attempt row must scope the artifact, event, and raw-data sections to only that selected result.
+- Artifact links should use short action labels such as `Open workspace`, `Open events`, and `Open result YAML`; full paths should remain available in the embedded data but should not be the visible link label.
+- The selected result should expose `workspace`, event, final, stderr, result YAML, preload artifacts, and materialized skill links when present; `runRoot` should not be shown as a separate visible artifact link.
+- Event JSONL should be formatted as an expandable event list with type, status or phase, compact summary text, and the raw JSON for inspection.
+
+## Current Verification Example
+
+The current `examples/basic-suite/results` run demonstrates the MVP data shape:
+
+| Variant | Status | Duration | Estimated Repeat | Total Tokens | Preload |
+| --- | --- | ---: | ---: | ---: | --- |
+| `with-skill` | `passed` | `22647ms` | `11627ms` | `69332` | `11020ms`, `32486` tokens |
+| `no-skill` | `passed` | `16456ms` | `16456ms` | `64254` | none |
+
+The no-skill baseline comparison for this run is:
+
+| Metric | Value | Interpretation |
+| --- | ---: | --- |
+| Repeated time improvement | `4829ms` | `with-skill` is estimated 4.829s faster than `no-skill` on repeated runs. |
+| Repeated time preload cost | `11020ms` | One-time skill preload duration shown in parentheses. |
+| Token improvement | `-5078` | `with-skill` used 5,078 more generation tokens than `no-skill`. |
+| Token preload cost | `32486` | One-time skill preload tokens shown in parentheses. |
+
+Both variants are `passed` in the MVP because assertions are not yet deterministically evaluating the exact file content. The report must therefore separate execution status from output-quality evidence and expose final messages, result YAML, and event data for review.
+
 ## Artifact Retention
 
 The initial retention policy is full retention. The runner should retain raw SDK events, normalized events, final messages, stderr or diagnostics, generation diffs, usage-evaluation diffs, structured outputs, judge prompts and responses, command outputs, and copied run workspaces according to cleanup policy. Later versions may add summary-only retention modes.
@@ -128,8 +183,10 @@ Retry policy may use `failureKind` to decide whether a failure is retryable.
 The HTML report must include:
 
 - Suite summary with total pass/fail/error counts.
+- Searchable left-side test case list with status indicators.
 - Matrix view by fixture, case, model, and skill variant.
 - Skill-enabled versus no-skill control comparison when control variants are present.
+- No-skill baseline improvement table for every skill variant in the same fixture/case/model group.
 - Artifact-usage evaluation token, duration, structured-output validity, and accuracy summaries.
 - Generation versus artifact-usage cost breakdowns.
 - Skill-enabled versus no-skill token, duration, and accuracy deltas.
@@ -138,6 +195,9 @@ The HTML report must include:
 - Separate deterministic and LLM-judged assertion summaries.
 - Per-run detail pages or expandable sections.
 - Links to raw artifacts.
+- Selected-result artifact links with short visible labels.
+- Inline previews of bounded intermediate data, with links to full artifacts.
+- Expandable formatted event lists for generation and preload events.
 - Failure diagnostics with compact evidence.
 
 ## Status Rules

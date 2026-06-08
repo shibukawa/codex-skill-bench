@@ -85,6 +85,7 @@ def run_suite(args: argparse.Namespace) -> int:
     runner = BenchRunner(results_dir, status=_status)
     summary = runner.run(specs)
     print(f"wrote {results_dir / 'summary.yaml'}")
+    print(f"wrote {results_dir / 'report.html'}")
     print(f"runs: {sum(len(v['variants']) for f in summary['fixtures'].values() for c in f['cases'].values() for v in c['models'].values())}")
     return 0
 
