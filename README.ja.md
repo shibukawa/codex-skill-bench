@@ -10,11 +10,11 @@ Codex Skill Bench は、Codex skill をワークスペースfixture単位で比�
 - `uv`
 - 実Codexを動かす場合は、利用可能なCodexログイン
 
-`uv` 経由で実行します。
+インストールせずに実行します。
 
 ```bash
-uv run codex-skill-bench list examples/basic-suite/suite.yaml
-uv run codex-skill-bench run examples/basic-suite/suite.yaml --results results/basic-suite-real
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git list examples/basic-suite/suite.yaml
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval examples/basic-suite/suite.yaml --results results/basic-suite-real
 ```
 
 テスト:
@@ -25,17 +25,39 @@ uv run pytest -q
 
 ## CLI
 
+現在のディレクトリでsuiteを初期化します。
+
+```bash
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git init [skill-path]
+```
+
+`skill-path` を省略すると、`init` は対話ウィザードを開始します。`suite.yaml`、`fixtures/`、`fixtures/README.md`、および同梱の `agents/` と `references/` を含む `.agents/skills/codex-skill-bench/` を作成します。
+
+既存ワークスペースのスナップショットからfixtureを追加します。
+
+```bash
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git add-fixture [name] [target-path] [prompt]
+```
+
+引数を省略すると、`add-fixture` は対話ウィザードを開始します。`target-path` をコピーして `fixtures/<name>/workspace/` を作成し、`prompt: <prompt>` のtest caseを `fixtures/<name>/fixture.yaml` に追加します。
+
+`target-path` がsuite rootの場合、スナップショット作成時に `fixtures/` と project-local の `.agent/skills/` または `.agents/skills/` は除外されます。
+
 Codexを実行せず、展開されるrunだけを表示します。
 
 ```bash
-uv run codex-skill-bench list <suite.yaml>
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git list <suite.yaml>
 ```
 
-suiteを実行します。
+suiteを評価実行します。
 
 ```bash
-uv run codex-skill-bench run <suite.yaml> [options]
+uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval <suite.yaml> [options]
 ```
+
+カレントディレクトリに `suite.yaml` がある場合、`list`、`eval`、`csb list`、`csb eval`、`csb run` ではsuiteパスを省略できます。
+
+まとめCLI entrypointを使う場合は、`csb run` を `eval` のaliasとして利用できます。
 
 オプション:
 
@@ -55,13 +77,14 @@ suiteは `fixtures` のルートを指します。各fixtureは、固定の `wor
 examples/basic-suite/
   suite.yaml
   fixtures/
+    README.md
     simple-python/
       fixture.yaml
       workspace/
         src/sample.py
 ```
 
-fixtureディレクトリ名がfixture idおよびtitleになります。runnerは各runの前に `workspace/` をコピーします。元のfixtureワークスペースは変更されません。
+fixtureディレクトリ名がfixture idおよびtitleになります。runnerは各runの前に `workspace/` をコピーします。元のfixtureワークスペースは変更されません。`fixtures/README.md` はローカルsuiteのコマンドと `suite.yaml` / `fixture.yaml` の説明を含みます。`init` は project-local helper skill も `.agents/skills/codex-skill-bench/` にインストールします。
 
 ## Suite設定
 
@@ -70,6 +93,9 @@ fixtureディレクトリ名がfixture idおよびtitleになります。runner�
 ```yaml
 version: 1
 name: basic license header comparison
+
+fixtures:
+  root: fixtures
 
 skills:
   - path: ../../demo-skill/license-header
@@ -92,6 +118,9 @@ security:
 
 runner:
   parallel: 1
+
+report:
+  resultsDir: results
 ```
 
 主なフィールド:
@@ -106,6 +135,7 @@ runner:
 - `variants[].controlOf`: 比較対象のskill variant名。
 - `security.sandbox`: Codex SDKのthread/turn実行に渡すsandbox。
 - `security.approval`: Codex SDK approval modeに変換されます。デフォルトは `never`。
+- `report.resultsDir`: `--results` 省略時の既定出力先ディレクトリ。
 
 Codex実行はPython Codex SDKを使います。`codex` objectと `skillRoot` はsuite schemaには含めません。
 

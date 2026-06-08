@@ -48,6 +48,9 @@ security:
 
 runner:
   parallel: 1
+
+report:
+  resultsDir: results
 ```
 
 ### Supported Fields
@@ -64,7 +67,10 @@ runner:
 - `security.network`: documented suite policy; current MVP records/configures security but does not expose every future network option.
 - `runner.parallel`: recorded in config; current MVP runs sequentially.
 - `runner.skillPreloadPrompt`: optional prompt for the separate skill preload measurement.
+- `report.resultsDir`: default output directory when `--results` is omitted.
 - `defaults`: accepted by the loader for future/default data, but most default merging is not implemented in the MVP.
+
+When the current directory contains `suite.yaml`, the suite path can be omitted for `list`, `eval`, `csb list`, `csb eval`, and `csb run`.
 
 ### skills Entries
 

@@ -1,6 +1,9 @@
 version: 1
 name: basic license header comparison
 
+fixtures:
+  root: fixtures
+
 skills:
   - path: ../../demo-skill/license-header
 
@@ -22,3 +25,6 @@ security:
 
 runner:
   parallel: 1
+
+report:
+  resultsDir: results

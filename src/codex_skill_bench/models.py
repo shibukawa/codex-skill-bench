@@ -59,6 +59,7 @@ class SuiteConfig:
     variants: list[VariantConfig]
     security: dict[str, Any]
     runner: dict[str, Any]
+    report: dict[str, Any]
     defaults: dict[str, Any]
 
 

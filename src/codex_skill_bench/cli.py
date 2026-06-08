@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from importlib import resources
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -10,7 +11,7 @@ import yaml
 
 from .models import RunSpec
 from .runner import BenchRunner
-from .suite_loader import load_suite
+from .suite_loader import SuiteValidationError, ValidationIssue, load_suite
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_run_arguments(eval_parser)
 
     list_parser = sub.add_parser("list", help="List resolved runs")
-    list_parser.add_argument("suite", type=Path)
+    _add_list_arguments(list_parser)
 
     init_parser = sub.add_parser("init", help="Initialize a benchmark suite")
     init_parser.add_argument("skill_path", type=Path, nargs="?")
@@ -36,13 +37,13 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command in {"run", "eval"}:
-        return run_suite(args)
+        return _handle_validation_errors(lambda: run_suite(args))
     if args.command == "list":
-        return list_suite(args)
+        return _handle_validation_errors(lambda: list_suite(args))
     if args.command == "init":
-        return init_suite(args)
+        return _handle_validation_errors(lambda: init_suite(args))
     if args.command == "add-fixture":
-        return add_fixture(args)
+        return _handle_validation_errors(lambda: add_fixture(args))
     parser.error(f"unknown command: {args.command}")
     return 2
 
@@ -50,13 +51,13 @@ def main(argv: list[str] | None = None) -> int:
 def eval_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="eval")
     _add_run_arguments(parser)
-    return run_suite(parser.parse_args(argv))
+    return _handle_validation_errors(lambda: run_suite(parser.parse_args(argv)))
 
 
 def init_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="init")
     parser.add_argument("skill_path", type=Path, nargs="?")
-    return init_suite(parser.parse_args(argv))
+    return _handle_validation_errors(lambda: init_suite(parser.parse_args(argv)))
 
 
 def add_fixture_main(argv: list[str] | None = None) -> int:
@@ -64,19 +65,19 @@ def add_fixture_main(argv: list[str] | None = None) -> int:
     parser.add_argument("name", nargs="?")
     parser.add_argument("target_path", type=Path, nargs="?")
     parser.add_argument("prompt", nargs="?")
-    return add_fixture(parser.parse_args(argv))
+    return _handle_validation_errors(lambda: add_fixture(parser.parse_args(argv)))
 
 
 def list_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="list")
-    parser.add_argument("suite", type=Path)
-    return list_suite(parser.parse_args(argv))
+    _add_list_arguments(parser)
+    return _handle_validation_errors(lambda: list_suite(parser.parse_args(argv)))
 
 
 def run_suite(args: argparse.Namespace) -> int:
-    suite, fixtures = load_suite(args.suite)
+    suite, fixtures = load_suite(_resolve_suite_argument(args))
     specs = select_runs(suite, fixtures, args)
-    results_dir = args.results or Path(suite.codex.get("resultsDir", "results"))
+    results_dir = _resolve_results_dir(args, suite)
     runner = BenchRunner(results_dir)
     summary = runner.run(specs)
     print(f"wrote {results_dir / 'summary.yaml'}")
@@ -85,7 +86,7 @@ def run_suite(args: argparse.Namespace) -> int:
 
 
 def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("suite", type=Path)
+    parser.add_argument("suite", type=Path, nargs="?")
     parser.add_argument("--results", type=Path, default=None)
     parser.add_argument("--model", default=None)
     parser.add_argument("--variant", default=None)
@@ -93,11 +94,54 @@ def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--fixture", default=None)
 
 
+def _add_list_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("suite", type=Path, nargs="?")
+    parser.add_argument("--model", default=None)
+    parser.add_argument("--variant", default=None)
+    parser.add_argument("--case", default=None)
+    parser.add_argument("--fixture", default=None)
+
+
 def list_suite(args: argparse.Namespace) -> int:
-    suite, fixtures = load_suite(args.suite)
+    suite, fixtures = load_suite(_resolve_suite_argument(args))
     for spec in select_runs(suite, fixtures, args):
         print(spec.run_id)
     return 0
+
+
+def _resolve_suite_argument(args: argparse.Namespace) -> Path:
+    suite = getattr(args, "suite", None)
+    if suite is not None:
+        return suite
+
+    default = Path.cwd() / "suite.yaml"
+    if default.exists():
+        return default
+    raise SuiteValidationError(
+        [ValidationIssue(default, "suite argument is required unless ./suite.yaml exists")]
+    )
+
+
+def _resolve_results_dir(args: argparse.Namespace, suite) -> Path:
+    if args.results is not None:
+        return args.results
+    raw = suite.report.get("resultsDir", "results")
+    path = Path(raw)
+    return path if path.is_absolute() else suite.path.parent / path
+
+
+def _handle_validation_errors(callback) -> int:
+    try:
+        return callback()
+    except SuiteValidationError as exc:
+        _print_validation_errors(exc)
+        return 2
+
+
+def _print_validation_errors(exc: SuiteValidationError) -> None:
+    print("error: invalid suite configuration", file=sys.stderr)
+    for issue in exc.issues:
+        print(f"- {issue.path}: {issue.message}", file=sys.stderr)
 
 
 def init_suite(args: argparse.Namespace) -> int:
@@ -226,7 +270,10 @@ def _snapshot_ignore(source: Path, root: Path):
 
 
 def _load_yaml_dict(path: Path) -> dict[str, Any]:
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise SuiteValidationError([ValidationIssue(path, f"invalid YAML: {exc}")]) from exc
     return data if isinstance(data, dict) else {}
 
 

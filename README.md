@@ -55,6 +55,8 @@ Evaluate a suite:
 uvx --from git+https://github.com/shibukawa/codex-skill-bench.git eval <suite.yaml> [options]
 ```
 
+When the current directory contains `suite.yaml`, the suite path can be omitted for `list`, `eval`, `csb list`, `csb eval`, and `csb run`.
+
 `csb run` is kept as an alias for `eval` when using the grouped CLI entrypoint.
 
 Options:
@@ -92,6 +94,9 @@ Example:
 version: 1
 name: basic license header comparison
 
+fixtures:
+  root: fixtures
+
 skills:
   - path: ../../demo-skill/license-header
 
@@ -113,6 +118,9 @@ security:
 
 runner:
   parallel: 1
+
+report:
+  resultsDir: results
 ```
 
 Fields:
@@ -127,6 +135,7 @@ Fields:
 - `variants[].controlOf`: names the skill variant this control compares against.
 - `security.sandbox`: passed to Codex SDK thread and turn execution.
 - `security.approval`: mapped to Codex SDK approval mode. Defaults to `never`.
+- `report.resultsDir`: default output directory when `--results` is omitted.
 
 Codex execution uses the Python Codex SDK. A `codex` object and `skillRoot` are not part of the suite schema.
 
