@@ -1,0 +1,4 @@
+interface:
+  display_name: "CSV DuckDB"
+  short_description: "Aggregate CSV files with DuckDB"
+  default_prompt: "Use $csv-duckdb to compute exact CSV row counts, totals, and averages."

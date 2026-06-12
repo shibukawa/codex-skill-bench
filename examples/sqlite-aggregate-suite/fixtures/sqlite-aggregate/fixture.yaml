@@ -1,0 +1,27 @@
+cases:
+  - title: explicit
+    timeout: 5m
+    skill: sqlite-aggregate
+    variants:
+      - cold
+    prompt: |
+      Use the $sqlite-aggregate skill.
+      Aggregate data/measurements.sqlite and return the result as JSON only.
+      Use the skill script output as the source of truth.
+      The JSON object must have exactly these keys: row_count, total_value, average_value.
+  - title: implicit
+    timeout: 5m
+    skill: sqlite-aggregate
+    variants:
+      - cold
+    prompt: |
+      Aggregate data/measurements.sqlite and return the result as JSON only.
+      Use the deterministic aggregation script output as the source of truth.
+      The JSON object must have exactly these keys: row_count, total_value, average_value.
+  - title: no-skill
+    timeout: 5m
+    skill: []
+    prompt: |
+      Interpret the SQLite binary database at data/measurements.sqlite directly and compute the row count, sum of the value column, and average of the value column from table measurements.
+      Return the result as JSON only.
+      The JSON object must have exactly these keys: row_count, total_value, average_value.

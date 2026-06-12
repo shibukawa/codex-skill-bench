@@ -1,0 +1,22 @@
+version: 1
+name: sqlite aggregate script comparison
+
+fixtures:
+  root: fixtures
+
+skills:
+  - path: ../../demo-skill/sqlite-aggregate
+
+models:
+  - default
+
+security:
+  sandbox: workspace-write
+  network: false
+  approval: never
+
+runner:
+  parallel: 1
+
+report:
+  resultsDir: results

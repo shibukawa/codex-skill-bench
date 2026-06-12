@@ -1,0 +1,22 @@
+version: 1
+name: csv duckdb script comparison
+
+fixtures:
+  root: fixtures
+
+skills:
+  - path: ../../demo-skill/csv-duckdb
+
+models:
+  - default
+
+security:
+  sandbox: workspace-write
+  network: false
+  approval: never
+
+runner:
+  parallel: 1
+
+report:
+  resultsDir: results

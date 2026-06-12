@@ -1,0 +1,4 @@
+interface:
+  display_name: "SQLite Aggregate"
+  short_description: "Aggregate SQLite database files"
+  default_prompt: "Use $sqlite-aggregate to compute exact SQLite row counts, totals, and averages."

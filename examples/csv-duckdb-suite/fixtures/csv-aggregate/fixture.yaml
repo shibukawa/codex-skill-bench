@@ -1,0 +1,27 @@
+cases:
+  - title: explicit
+    timeout: 5m
+    skill: csv-duckdb
+    variants:
+      - cold
+    prompt: |
+      Use the $csv-duckdb skill.
+      Aggregate data/measurements.csv and return the result as JSON only.
+      Use the skill script output as the source of truth.
+      The JSON object must have exactly these keys: row_count, total_value, average_value.
+  - title: implicit
+    timeout: 5m
+    skill: csv-duckdb
+    variants:
+      - cold
+    prompt: |
+      Aggregate data/measurements.csv and return the result as JSON only.
+      Use the deterministic aggregation script output as the source of truth.
+      The JSON object must have exactly these keys: row_count, total_value, average_value.
+  - title: no-skill
+    timeout: 5m
+    skill: []
+    prompt: |
+      Interpret data/measurements.csv directly and compute the row count, sum of the value column, and average of the value column.
+      Return the result as JSON only.
+      The JSON object must have exactly these keys: row_count, total_value, average_value.
